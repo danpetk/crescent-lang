@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "crescent-lang"
+name = "crescent"
 version = "0.1.0"

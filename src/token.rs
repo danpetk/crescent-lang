@@ -6,7 +6,7 @@ pub enum TokenKind {
 
 #[derive(Debug)]
 pub struct Token<'a> {
-    _kind: TokenKind,
-    _lexeme: &'a str,
-    _line_number: i32
+    pub kind: TokenKind,
+    pub lexeme: &'a str,
+    pub line_number: i32
 }

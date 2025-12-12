@@ -1,26 +1,39 @@
-use std::fs;
 use crate::error::LexerError;
-pub struct Lexer {
-    _source: String,
+use crate::token::*;
+
+
+pub struct Lexer<'a> {
+    source: &'a str,
     _start: usize,
-    _position: usize,
-    _line: i32
+    position: usize,
+    line: i32
 }
 
-impl Lexer {
-    pub fn from_file(filename: &str) -> Result<Lexer, LexerError> {
-        let source = fs::read_to_string(filename).map_err(|_| LexerError::FileError {
-                file: filename.to_string()
-        })?;
-        
-        Ok(Lexer { 
-            _source: source,
+impl<'a> Lexer<'a> {
+    pub fn new(source: &'a str) -> Lexer<'a> {
+        Lexer { 
+           source,
             _start: 0,
-            _position: 0,
-            _line: 0
-        })
+            position: 0,
+            line: 0
+        }
     }
 
-    // pub fn next_token(&mut self) -> 
+    pub fn next_token(&mut self) -> Result<Token, LexerError> {
+        if self.at_end() {
+            return Ok(Token{kind: TokenKind::EOF, lexeme: "", line_number: self.line});
+        }
+
+        todo!();
+    } 
+
+    fn at_end(&self) -> bool {
+        return self.position >= self.source.len();
+    }
+
+    fn peek_char(&self) -> char {
+        return self.source[self.position..].chars().next().expect("at_end() should be used to check for out-of-bounds.");
+    }
+
     
 }

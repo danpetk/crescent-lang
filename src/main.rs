@@ -27,6 +27,8 @@ fn compile(source: &str) -> Result<(), Box<dyn Error>> {
     
     loop {
         let x = lexer.next_token().unwrap();
+        let _y = lexer.next_token().unwrap();
+
         println!("{x:?}");
         if matches!(x.kind, TokenKind::EOF) {
             break;

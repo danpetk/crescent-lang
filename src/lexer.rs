@@ -19,16 +19,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Token, LexerError> {
+    pub fn next_token(&mut self) -> Result<Token<'a>, LexerError> {
         if self.at_end() {
             return Ok(Token{kind: TokenKind::EOF, lexeme: "", line: self.line});
         }
-
+        
+        self.start = self.position;
         let token = match self.advance_char() {
             x if x == ';' => self.make_token(TokenKind::SEMICOLON),
             _ => panic!()
         };
-
 
         Ok(token)
     } 
@@ -37,7 +37,7 @@ impl<'a> Lexer<'a> {
         return self.position >= self.source.len();
     }
 
-    fn peek_char(&self) -> char {
+    fn _peek_char(&self) -> char {
         return self.source[self.position..].chars().next().expect("at_end() should be used before peek_char()");
     }
 
@@ -47,7 +47,7 @@ impl<'a> Lexer<'a> {
         c
     }
 
-    fn make_token(&self, kind: TokenKind) -> Token {
+    fn make_token(&self, kind: TokenKind) -> Token<'a> {
         Token {
             kind,
             lexeme: &self.source[self.start..self.position],

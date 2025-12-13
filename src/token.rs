@@ -1,8 +1,10 @@
 #[derive(Debug)]
 pub enum TokenKind {
     EOF,
-    IDENTIFIER,
-    SEMICOLON
+    Identifier,
+    Semi,
+    OpenCurly,
+    CloseCurly
 }
 
 #[derive(Debug)]

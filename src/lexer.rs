@@ -20,13 +20,16 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn next_token(&mut self) -> Result<Token<'a>, LexerError> {
+        self.skip_whitespace();
         if self.at_end() {
             return Ok(Token{kind: TokenKind::EOF, lexeme: "", line: self.line});
         }
         
         self.start = self.position;
         let token = match self.advance_char() {
-            x if x == ';' => self.make_token(TokenKind::SEMICOLON),
+            x if x == ';' => self.make_token(TokenKind::Semi),
+            x if x == '{' => self.make_token(TokenKind::OpenCurly),
+            x if x == '}' => self.make_token(TokenKind::CloseCurly),
             _ => panic!()
         };
 
@@ -37,12 +40,21 @@ impl<'a> Lexer<'a> {
         return self.position >= self.source.len();
     }
 
-    fn _peek_char(&self) -> char {
+    fn peek_char(&self) -> char {
         return self.source[self.position..].chars().next().expect("at_end() should be used before peek_char()");
+    }
+
+    fn skip_whitespace(&mut self) {
+        while !self.at_end() && self.peek_char().is_whitespace() {
+            self.advance_char();
+        }
     }
 
     pub fn advance_char(&mut self) -> char {
         let c = self.source[self.position..].chars().next().expect("at_end() should be used before advance_char()");
+        if c == '\n' {
+            self.line += 1;
+        }
         self.position += c.len_utf8();
         c
     }

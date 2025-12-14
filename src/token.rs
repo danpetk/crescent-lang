@@ -4,7 +4,8 @@ pub enum TokenKind {
     Identifier,
     Semi,
     OpenCurly,
-    CloseCurly
+    CloseCurly,
+    Return
 }
 
 #[derive(Debug)]

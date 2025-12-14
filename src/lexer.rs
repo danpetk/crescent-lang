@@ -1,6 +1,9 @@
 use crate::error::LexerError;
 use crate::token::*;
 
+fn is_identifier_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
 
 pub struct Lexer<'a> {
     source: &'a str,
@@ -21,42 +24,54 @@ impl<'a> Lexer<'a> {
 
     pub fn next_token(&mut self) -> Result<Token<'a>, LexerError> {
         self.skip_whitespace();
-        if self.at_end() {
-            return Ok(Token{kind: TokenKind::EOF, lexeme: "", line: self.line});
-        }
-        
         self.start = self.position;
+
         let token = match self.advance_char() {
-            x if x == ';' => self.make_token(TokenKind::Semi),
-            x if x == '{' => self.make_token(TokenKind::OpenCurly),
-            x if x == '}' => self.make_token(TokenKind::CloseCurly),
-            _ => panic!()
+            None => Token{kind: TokenKind::EOF, lexeme: "", line: self.line},
+            Some(c) => match c {
+                ';' => self.make_token(TokenKind::Semi),
+                '{' => self.make_token(TokenKind::OpenCurly),
+                '}' => self.make_token(TokenKind::CloseCurly),
+                x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
+                _ => todo!()            
+            }
         };
 
         Ok(token)
     } 
 
-    fn at_end(&self) -> bool {
-        return self.position >= self.source.len();
-    }
-
-    fn peek_char(&self) -> char {
-        return self.source[self.position..].chars().next().expect("at_end() should be used before peek_char()");
-    }
-
     fn skip_whitespace(&mut self) {
-        while !self.at_end() && self.peek_char().is_whitespace() {
+        while let Some(c) = self.peek_char() && c.is_whitespace() {
             self.advance_char();
         }
     }
+    
+    fn peek_char(&self) -> Option<char> {
+        return self.source[self.position..].chars().next();
+    }
 
-    pub fn advance_char(&mut self) -> char {
-        let c = self.source[self.position..].chars().next().expect("at_end() should be used before advance_char()");
+    fn advance_char(&mut self) -> Option<char> {
+        let c = self.source[self.position..].chars().next()?;
         if c == '\n' {
             self.line += 1;
         }
         self.position += c.len_utf8();
-        c
+        Some(c)
+    }
+
+    fn lex_identifier(&mut self) -> Token<'a> {
+        while let Some(c) = self.peek_char() && is_identifier_char(c) {
+            self.advance_char();    
+        }    
+        self.make_token(TokenKind::Identifier)
+    }
+
+
+    fn _get_keyword(identifier: &str) -> Option<TokenKind> {
+        match identifier {
+            "return" => Some(TokenKind::Return),
+            _ => None
+        }
     }
 
     fn make_token(&self, kind: TokenKind) -> Token<'a> {

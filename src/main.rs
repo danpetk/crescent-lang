@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::process::exit;
 use std::fs;
-use lang::{Lexer, TokenKind};
+use lang::{Lexer};
 
 fn main() {
     let filename =  std::env::args().nth(1).unwrap_or_else(||{
@@ -25,13 +25,22 @@ fn main() {
 fn compile(source: &str) -> Result<(), Box<dyn Error>> {
     let mut lexer = Lexer::new(&source);
     
-    loop {
-        let x = lexer.next_token().unwrap();
+    let x = lexer.tokenize();
 
-        println!("{x:?}");
-        if matches!(x.kind, TokenKind::EOF) {
-            break;
+
+    match x {
+        Ok(_x) => {
+            // for token in x {
+            //     println!("{token:?}")
+            // }
+        },
+        Err(x) => {
+            for error in x {
+                println!("{error}")
+            }
         }
     }
+        
+    
     Ok(())
 }

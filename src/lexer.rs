@@ -1,5 +1,5 @@
 use crate::error::LexerError;
-use crate::token::*;
+use crate::tokens::*;
 
 fn is_identifier_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
@@ -8,6 +8,7 @@ fn is_identifier_char(c: char) -> bool {
 fn get_keyword(identifier: &str) -> Option<TokenKind> {
     match identifier {
         "return" => Some(TokenKind::Return),
+        "func" => Some(TokenKind::Func),
         _ => None
     }
 }
@@ -29,7 +30,33 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Token<'a>, LexerError> {
+    pub fn tokenize(&mut self) -> Result<TokenStream<'a>, Vec<LexerError>> {
+        let mut tokens: Vec<Token> = vec![];
+        let mut errors: Vec<LexerError> = vec![];
+        
+        loop {
+            match self.next_token() {
+                Ok(token) => {
+                    if token.kind == TokenKind::EOF{
+                        tokens.push(token);
+                        break;
+                    }
+                    tokens.push(token);
+                },
+                Err(error) => {
+                    errors.push(error);
+                }
+            };
+        }
+
+        if errors.is_empty() {
+            Ok(TokenStream::new(tokens))
+        } else {
+            Err(errors)
+        }
+    }
+
+    fn next_token(&mut self) -> Result<Token<'a>, LexerError> {
         self.skip_whitespace();
         self.start = self.position;
 
@@ -40,8 +67,11 @@ impl<'a> Lexer<'a> {
                 ':' => self.make_token(TokenKind::Colon),
                 '{' => self.make_token(TokenKind::OpenCurly),
                 '}' => self.make_token(TokenKind::CloseCurly),
+                ',' => self.make_token(TokenKind::Comma),
+                '(' => self.make_token(TokenKind::OpenParen),
+                ')' => self.make_token(TokenKind::CloseParen),
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
-                _ => todo!()            
+                _ => return Err(LexerError::InvalidToken { line: self.line, lexeme: c.to_string() })          
             }
         };
 
@@ -72,7 +102,9 @@ impl<'a> Lexer<'a> {
             self.advance_char();    
         }    
 
-        let token_kind = get_keyword(self.current_lexeme()).unwrap_or(TokenKind::Identifier);
+        let token_kind = get_keyword(self.current_lexeme())
+            .unwrap_or(TokenKind::Identifier);
+        
         self.make_token(token_kind)
     }
 

@@ -3,6 +3,7 @@ pub enum TokenKind {
     EOF,
     Identifier,
     Semi,
+    Colon,
     OpenCurly,
     CloseCurly,
     Return

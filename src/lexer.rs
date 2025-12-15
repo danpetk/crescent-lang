@@ -5,6 +5,13 @@ fn is_identifier_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
+fn get_keyword(identifier: &str) -> Option<TokenKind> {
+    match identifier {
+        "return" => Some(TokenKind::Return),
+        _ => None
+    }
+}
+
 pub struct Lexer<'a> {
     source: &'a str,
     start: usize,
@@ -30,6 +37,7 @@ impl<'a> Lexer<'a> {
             None => Token{kind: TokenKind::EOF, lexeme: "", line: self.line},
             Some(c) => match c {
                 ';' => self.make_token(TokenKind::Semi),
+                ':' => self.make_token(TokenKind::Colon),
                 '{' => self.make_token(TokenKind::OpenCurly),
                 '}' => self.make_token(TokenKind::CloseCurly),
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
@@ -63,24 +71,20 @@ impl<'a> Lexer<'a> {
         while let Some(c) = self.peek_char() && is_identifier_char(c) {
             self.advance_char();    
         }    
-        self.make_token(TokenKind::Identifier)
+
+        let token_kind = get_keyword(self.current_lexeme()).unwrap_or(TokenKind::Identifier);
+        self.make_token(token_kind)
     }
 
-
-    fn _get_keyword(identifier: &str) -> Option<TokenKind> {
-        match identifier {
-            "return" => Some(TokenKind::Return),
-            _ => None
-        }
+    fn current_lexeme(&self) -> &'a str {
+        &self.source[self.start..self.position]
     }
 
     fn make_token(&self, kind: TokenKind) -> Token<'a> {
         Token {
             kind,
-            lexeme: &self.source[self.start..self.position],
+            lexeme: self.current_lexeme(),
             line: self.line
         }
     }
-
-    
 }

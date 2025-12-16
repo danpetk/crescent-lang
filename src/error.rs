@@ -11,7 +11,7 @@ impl fmt::Display for LexerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::InvalidToken { line, lexeme } => 
-                write!(f, "ERROR(line {line}) Unexpected token in source file: '{lexeme}'")
+                write!(f, "ERROR (line {line}) Unexpected token in source file: '{lexeme}'")
         }
     }
 }

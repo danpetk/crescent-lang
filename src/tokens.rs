@@ -46,7 +46,15 @@ impl<'a> TokenStream<'a> {
         }
     }
 
+    pub fn advance(&mut self) -> &Token<'a> {
+        let token = self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds");
+        if token.kind != TokenKind::EOF {
+            self.pos += 1;
+        }
+        token
+    }
+
     pub fn peek(&self) -> &Token<'a> {
-        &self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds")
+        self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds")
     }
 }

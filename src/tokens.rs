@@ -1,5 +1,5 @@
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
 
     // Single Char
@@ -25,7 +25,7 @@ pub enum TokenKind {
     EOF,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token<'a> {
     pub kind: TokenKind,
     pub lexeme: &'a str,
@@ -39,22 +39,22 @@ pub struct TokenStream<'a> {
 }
 
 impl<'a> TokenStream<'a> {
-    pub fn new(tokens: Vec<Token>) -> TokenStream {
+    pub fn new(tokens: Vec<Token<'a>>) -> TokenStream<'a> {
         TokenStream {
             tokens,
             pos: 0
         }
     }
 
-    pub fn advance(&mut self) -> &Token<'a> {
+    pub fn advance(&mut self) -> Token<'a> {
         let token = self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds");
         if token.kind != TokenKind::EOF {
             self.pos += 1;
         }
-        token
+        token.clone() // clone is cheap here, plus the TokenStream "serves" tokens, so it should not give ref
     }
 
-    pub fn peek(&self) -> &Token<'a> {
-        self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds")
+    pub fn peek(&self) -> Token<'a>{
+        self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds").clone()
     }
 }

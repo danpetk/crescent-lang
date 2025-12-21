@@ -57,4 +57,8 @@ impl<'a> TokenStream<'a> {
     pub fn peek(&self) -> Token<'a>{
         self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds").clone()
     }
+
+    pub fn any(&self) -> bool {
+        self.peek().kind != TokenKind::EOF
+    }
 }

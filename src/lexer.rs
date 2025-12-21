@@ -13,15 +13,15 @@ fn get_keyword(identifier: &str) -> Option<TokenKind> {
     }
 }
 
-pub struct Lexer<'a> {
-    source: &'a str,
+pub struct Lexer<'src> {
+    source: &'src str,
     start: usize,
     position: usize,
     line: i32
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str) -> Lexer<'a> {
+impl<'src> Lexer<'src> {
+    pub fn new(source: &'src str) -> Lexer<'src> {
         Lexer { 
             source,
             start: 0,
@@ -30,7 +30,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn tokenize(&mut self) -> Result<TokenStream<'a>, Vec<LexerError>> {
+    pub fn tokenize(&mut self) -> Result<TokenStream<'src>, Vec<LexerError>> {
         let mut tokens: Vec<Token> = vec![];
         let mut errors: Vec<LexerError> = vec![];
         
@@ -56,7 +56,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Result<Token<'a>, LexerError> {
+    fn next_token(&mut self) -> Result<Token<'src>, LexerError> {
         self.skip_whitespace();
         self.start = self.position;
 
@@ -97,7 +97,7 @@ impl<'a> Lexer<'a> {
         Some(c)
     }
 
-    fn lex_identifier(&mut self) -> Token<'a> {
+    fn lex_identifier(&mut self) -> Token<'src> {
         while let Some(c) = self.peek_char() && is_identifier_char(c) {
             self.advance_char();    
         }    
@@ -108,11 +108,11 @@ impl<'a> Lexer<'a> {
         self.make_token(token_kind)
     }
 
-    fn current_lexeme(&self) -> &'a str {
+    fn current_lexeme(&self) -> &'src str {
         &self.source[self.start..self.position]
     }
 
-    fn make_token(&self, kind: TokenKind) -> Token<'a> {
+    fn make_token(&self, kind: TokenKind) -> Token<'src> {
         Token {
             kind,
             lexeme: self.current_lexeme(),

@@ -18,7 +18,7 @@ fn main() {
 
     if let Err(errors) = compiler.compile(&source) {
         for e in errors {
-            eprintln!("ERROR: {e}");
+            eprintln!("{e}");
         }
         exit(1);
     }

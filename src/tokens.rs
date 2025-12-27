@@ -53,27 +53,26 @@ impl fmt::Display for TokenKind {
 }
 
 #[derive(Debug, Clone)]
-pub struct Token<'a> {
+pub struct Token {
     pub kind: TokenKind,
-    pub lexeme: &'a str,
     pub line: i32,
 }
 
 // Nothing to do with proc_macro::TokenStream :)
-pub struct TokenStream<'a> {
-    tokens: Vec<Token<'a>>,
+pub struct TokenStream {
+    tokens: Vec<Token>,
     pos: usize
 }
 
-impl<'a> TokenStream<'a> {
-    pub fn new(tokens: Vec<Token<'a>>) -> TokenStream<'a> {
+impl TokenStream {
+    pub fn new(tokens: Vec<Token>) -> TokenStream {
         TokenStream {
             tokens,
             pos: 0
         }
     }
 
-    pub fn advance(&mut self) -> Token<'a> {
+    pub fn advance(&mut self) -> Token {
         let token = self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds");
         if token.kind != TokenKind::EOF {
             self.pos += 1;
@@ -81,7 +80,7 @@ impl<'a> TokenStream<'a> {
         token.clone() // clone is cheap here, plus the TokenStream "serves" tokens, so it should not give ref
     }
 
-    pub fn expect(&mut self, expected_kind: TokenKind) -> Result<Token<'a>, ParserError> {
+    pub fn expect(&mut self, expected_kind: TokenKind) -> Result<Token, ParserError> {
         let tok = self.advance();
         if tok.kind != expected_kind {
             return Err(unexpected_token_error(tok, expected_kind))
@@ -89,7 +88,7 @@ impl<'a> TokenStream<'a> {
         Ok(tok)
     }
 
-    pub fn peek(&self) -> Token<'a>{
+    pub fn peek(&self) -> Token{
         self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds").clone()
     }
 

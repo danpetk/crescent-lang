@@ -30,7 +30,7 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    pub fn tokenize(&mut self) -> Result<TokenStream<'src>, Vec<LexerError>> {
+    pub fn tokenize(&mut self) -> Result<TokenStream, Vec<LexerError>> {
         let mut tokens: Vec<Token> = vec![];
         let mut errors: Vec<LexerError> = vec![];
         
@@ -56,12 +56,12 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    fn next_token(&mut self) -> Result<Token<'src>, LexerError> {
+    fn next_token(&mut self) -> Result<Token, LexerError> {
         self.skip_whitespace();
         self.start = self.position;
 
         let token = match self.advance_char() {
-            None => Token{kind: TokenKind::EOF, lexeme: "", line: self.line},
+            None => Token{kind: TokenKind::EOF, line: self.line},
             Some(c) => match c {
                 ';' => self.make_token(TokenKind::Semi),
                 ':' => self.make_token(TokenKind::Colon),
@@ -97,7 +97,7 @@ impl<'src> Lexer<'src> {
         Some(c)
     }
 
-    fn lex_identifier(&mut self) -> Token<'src> {
+    fn lex_identifier(&mut self) -> Token {
         while let Some(c) = self.peek_char() && is_identifier_char(c) {
             self.advance_char();    
         }    
@@ -112,10 +112,10 @@ impl<'src> Lexer<'src> {
         &self.source[self.start..self.position]
     }
 
-    fn make_token(&self, kind: TokenKind) -> Token<'src> {
+    fn make_token(&self, kind: TokenKind) -> Token {
         Token {
             kind,
-            lexeme: self.current_lexeme(),
+            // lexeme: self.current_lexeme(),
             line: self.line
         }
     }

@@ -30,7 +30,8 @@ pub enum StmtKind {
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     While(Box<Expr>, Box<Stmt>),
     ExprStmt(Box<Expr>),
-    Block(Vec<Stmt>)
+    Block(Vec<Stmt>),
+    File(Vec<Stmt>)
 }
 
 #[derive(Debug)]

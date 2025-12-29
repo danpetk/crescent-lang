@@ -29,7 +29,7 @@ pub enum TokenKind {
     Func,
     
     // Special
-    EOF,
+    EOF
 }
 
 impl fmt::Display for TokenKind {

@@ -27,6 +27,9 @@ pub enum TokenKind {
     // Keywords
     Return,
     Func,
+    If,
+    Else,
+    While,
     
     // Special
     EOF
@@ -46,6 +49,9 @@ impl fmt::Display for TokenKind {
             TokenKind::Identifier => "identifier",
             TokenKind::Return => "return",
             TokenKind::Func => "func",
+            TokenKind::If => "if",
+            TokenKind::Else => "else",
+            TokenKind::While => "while",
             TokenKind::EOF => "EOF"
         };
         write!(f, "{rep}")
@@ -86,6 +92,14 @@ impl TokenStream {
             return Err(unexpected_token_error(tok, expected_kind))
         }
         Ok(tok)
+    }
+
+    pub fn match_kind(&mut self, expected_kind: TokenKind) -> bool {
+        if self.peek().kind == expected_kind {
+            self.advance();
+            return true;
+        }
+        false
     }
 
     pub fn peek(&self) -> Token{

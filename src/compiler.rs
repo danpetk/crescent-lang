@@ -37,12 +37,14 @@ impl Compiler {
 
 
         let mut parser = Parser::new(token_stream, &self.context);
-        let _ast = match parser.parse() {
+        let ast = match parser.parse() {
             Ok(ast) => ast,
             Err(errors) => {
                 return Err(errors.into_iter().map(|e| Box::<dyn Error>::from(e)).collect());
             }
         };
+
+        println!("{ast:?}");
 
         Ok(())    
     }

@@ -15,7 +15,8 @@ pub enum UnOpKind {
 #[derive(Debug)]
 pub enum ExprKind {
     BinOp(BinOpKind, Box<Expr>, Box<Expr>),
-    UnOp(UnOpKind, Box<Expr>)
+    UnOp(UnOpKind, Box<Expr>),
+    Dummy
 }
 
 #[derive(Debug)]
@@ -31,13 +32,22 @@ pub enum StmtKind {
     While(Box<Expr>, Box<Stmt>),
     ExprStmt(Box<Expr>),
     Block(Vec<Stmt>),
-    File(Vec<Stmt>)
 }
 
 #[derive(Debug)]
 pub struct Stmt {
     pub kind: StmtKind,
     pub token: Token
-
 }
 
+#[derive(Debug)]
+pub struct Root {
+    pub top: Vec<Stmt>
+}
+
+impl From<Expr> for Stmt {
+    fn from(expr: Expr) -> Self {
+        let token = expr.token.clone();
+        Stmt { kind: StmtKind::ExprStmt(Box::new(expr)), token }
+    }
+}

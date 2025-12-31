@@ -9,6 +9,9 @@ fn get_keyword(identifier: &str) -> Option<TokenKind> {
     match identifier {
         "return" => Some(TokenKind::Return),
         "func" => Some(TokenKind::Func),
+        "if" => Some(TokenKind::If),
+        "else" => Some(TokenKind::Else),
+        "while" => Some(TokenKind::While),
         _ => None
     }
 }

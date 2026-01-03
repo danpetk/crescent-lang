@@ -57,10 +57,22 @@ impl fmt::Display for TokenKind {
         write!(f, "{rep}")
     }
 }
+#[derive(Debug, Clone)]
+pub struct SourceSpan {
+    pub low: usize,
+    pub high: usize
+}
+
+impl SourceSpan {
+    pub fn dummy() -> Self {
+        SourceSpan { low: 0, high: 0 }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
+    pub span: SourceSpan,
     pub line: i32,
 }
 

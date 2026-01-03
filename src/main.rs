@@ -14,9 +14,9 @@ fn main() {
         exit(1);
     });
 
-    let mut compiler = Compiler::new();
+    let mut compiler = Compiler::new(source);
 
-    if let Err(errors) = compiler.compile(&source) {
+    if let Err(errors) = compiler.compile() {
         for e in errors {
             eprintln!("{e}");
         }

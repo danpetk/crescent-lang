@@ -5,5 +5,6 @@ pub mod ast;
 pub mod compiler;
 pub mod parser;
 pub mod symbols;
+pub mod source;
 
 pub use compiler::Compiler;

@@ -1,15 +1,17 @@
 use std::error::Error;
-use crate::{lexer::Lexer, parser::Parser, symbols::Symbols};
+use crate::{lexer::Lexer, parser::Parser, symbols::Symbols, source::Source};
 use std::cell::RefCell;
 
 pub struct Context {
+    pub source: Source,
     pub symbols: RefCell<Symbols>
 }
 
 impl Context {
-    pub fn new() -> Context {
+    pub fn new(source: String) -> Context {
         Context {
-            symbols:RefCell::new(Symbols::new())
+            source: Source::new(source),
+            symbols: RefCell::new(Symbols::new())
         }
     }
 }
@@ -19,15 +21,15 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new() -> Compiler {
+    pub fn new(source: String) -> Compiler {
         Compiler {
-            context: Context::new()
+            context: Context::new(source)
         }
     }
 
-    pub fn compile(&mut self, source: &str) -> Result<(), Vec<Box<dyn Error>>> {
+    pub fn compile(&mut self) -> Result<(), Vec<Box<dyn Error>>> {
         
-        let mut lexer = Lexer::new(&source);
+        let mut lexer = Lexer::new(&self.context);
         let token_stream = match lexer.tokenize() {
             Ok(stream) => stream,
             Err(errors) => {

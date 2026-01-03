@@ -1,22 +1,20 @@
-use std::os::linux::raw::stat;
-
 use crate::ast::{Expr, ExprKind, Stmt, StmtKind, Root};
 use crate::error::ParserError;
 use crate::tokens::{TokenStream, TokenKind};
 use crate::compiler::Context;
 
 pub struct Parser<'ctx> {
-    _context: &'ctx Context,
+    ctx: &'ctx Context,
     token_stream: TokenStream,
-    errors: Vec<ParserError>
+    _errors: Vec<ParserError>
 }
 
 impl<'ctx> Parser<'ctx> {
     pub fn new(token_stream: TokenStream,context: &'ctx Context ) -> Parser<'ctx> {
         Parser {
-            _context: context,
+            ctx: context,
             token_stream,
-            errors: vec![]
+            _errors: vec![]
         }
     }
 
@@ -33,6 +31,7 @@ impl<'ctx> Parser<'ctx> {
 
     fn parse_statement(&mut self) -> Result<Stmt, ParserError> {
         let tok = self.token_stream.peek();
+
         let statement = match tok.kind {
 
             TokenKind::OpenCurly => self.parse_block()?,
@@ -96,6 +95,8 @@ impl<'ctx> Parser<'ctx> {
 
     fn parse_expr(&mut self) ->  Result<Expr, ParserError> {
         let token = self.token_stream.expect(TokenKind::Identifier)?;
+
+        println!("\n\n\n{}\n\n\n", self.ctx.source.get_spanned(&token.span));
         Ok(Expr {kind: ExprKind::Dummy, token})
     }
 }

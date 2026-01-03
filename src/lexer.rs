@@ -1,4 +1,5 @@
 use crate::error::LexerError;
+use crate::compiler::Context;
 use crate::tokens::*;
 
 fn is_identifier_char(c: char) -> bool {
@@ -16,17 +17,17 @@ fn get_keyword(identifier: &str) -> Option<TokenKind> {
     }
 }
 
-pub struct Lexer<'src> {
-    source: &'src str,
+pub struct Lexer<'ctx> {
+    ctx: &'ctx Context,
     start: usize,
     position: usize,
     line: i32
 }
 
-impl<'src> Lexer<'src> {
-    pub fn new(source: &'src str) -> Lexer<'src> {
+impl<'ctx> Lexer<'ctx> {
+    pub fn new(ctx: &'ctx Context) -> Lexer<'ctx> {
         Lexer { 
-            source,
+            ctx,
             start: 0,
             position: 0,
             line: 1
@@ -64,7 +65,7 @@ impl<'src> Lexer<'src> {
         self.start = self.position;
 
         let token = match self.advance_char() {
-            None => Token{kind: TokenKind::EOF, line: self.line},
+            None => Token{kind: TokenKind::EOF, span: SourceSpan::dummy(), line: self.line},
             Some(c) => match c {
                 ';' => self.make_token(TokenKind::Semi),
                 ':' => self.make_token(TokenKind::Colon),
@@ -88,11 +89,11 @@ impl<'src> Lexer<'src> {
     }
     
     fn peek_char(&self) -> Option<char> {
-        return self.source[self.position..].chars().next();
+        return self.ctx.source[self.position..].chars().next();
     }
 
     fn advance_char(&mut self) -> Option<char> {
-        let c = self.source[self.position..].chars().next()?;
+        let c = self.ctx.source[self.position..].chars().next()?;
         if c == '\n' {
             self.line += 1;
         }
@@ -111,14 +112,17 @@ impl<'src> Lexer<'src> {
         self.make_token(token_kind)
     }
 
-    fn current_lexeme(&self) -> &'src str {
-        &self.source[self.start..self.position]
+    fn current_lexeme(&self) -> &'ctx str {
+        &self.ctx.source[self.start..self.position]
     }
 
     fn make_token(&self, kind: TokenKind) -> Token {
         Token {
             kind,
-            // lexeme: self.current_lexeme(),
+            span: SourceSpan {
+                low: self.start,
+                high: self.position
+            },
             line: self.line
         }
     }

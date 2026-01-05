@@ -30,6 +30,7 @@ pub enum TokenKind {
     If,
     Else,
     While,
+    Let,
     
     // Special
     EOF
@@ -52,6 +53,7 @@ impl fmt::Display for TokenKind {
             TokenKind::If => "if",
             TokenKind::Else => "else",
             TokenKind::While => "while",
+            TokenKind::Let => "let",
             TokenKind::EOF => "EOF"
         };
         write!(f, "{rep}")

@@ -1,5 +1,5 @@
 use crate::tokens::Token;
-use std::boxed::Box;
+use crate::symbols::{Symbol};
 
 #[derive(Debug)]
 pub enum BinOpKind {
@@ -16,6 +16,7 @@ pub enum UnOpKind {
 pub enum ExprKind {
     BinOp(BinOpKind, Box<Expr>, Box<Expr>),
     UnOp(UnOpKind, Box<Expr>),
+    Var(Symbol),
     Dummy
 }
 
@@ -40,9 +41,34 @@ pub struct Stmt {
     pub token: Token
 }
 
-#[derive(Debug)]
-pub struct Root {
-    pub top: Vec<Stmt>
+impl Stmt {
+    pub fn block(statements: Vec<Stmt>, token: Token) -> Self {
+        Stmt { 
+            kind: StmtKind::Block(statements), 
+            token
+        }
+    }
+
+    pub fn if_else(cond: Expr, do_if: Stmt, do_else: Option<Stmt>, token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::If(
+                Box::new(cond), 
+                Box::new(do_if), 
+                do_else.map(Box::new)
+            ),
+            token
+        }
+    }
+
+    pub fn while_loop(cond: Expr, statement: Stmt, token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::While(
+                Box::new(cond), 
+                Box::new(statement)
+            ),
+            token
+        }
+    }
 }
 
 impl From<Expr> for Stmt {
@@ -50,4 +76,9 @@ impl From<Expr> for Stmt {
         let token = expr.token.clone();
         Stmt { kind: StmtKind::ExprStmt(Box::new(expr)), token }
     }
+}
+
+#[derive(Debug)]
+pub struct Root {
+    pub top: Vec<Stmt>
 }

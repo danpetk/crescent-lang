@@ -13,6 +13,7 @@ fn get_keyword(identifier: &str) -> Option<TokenKind> {
         "if" => Some(TokenKind::If),
         "else" => Some(TokenKind::Else),
         "while" => Some(TokenKind::While),
+        "let" => Some(TokenKind::Let),
         _ => None
     }
 }

@@ -1,1 +1,1 @@
-Intern strings / optimize identifier storage
+Intern strings on lex to remove symbol table allocations

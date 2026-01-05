@@ -3,6 +3,7 @@ use crate::symbols::{Symbol};
 
 #[derive(Debug)]
 pub enum BinOpKind {
+    Assign,
     Add,
 }
 
@@ -24,6 +25,26 @@ pub enum ExprKind {
 pub struct Expr {
     pub kind: ExprKind,
     pub token: Token
+}
+
+impl Expr {
+    pub fn var(symbol: Symbol, token: Token) -> Self {
+        Expr {
+            kind: ExprKind::Var(symbol),
+            token
+        }
+    }
+
+    pub fn binary_op(kind: BinOpKind, lhs: Expr, rhs: Expr, token: Token) -> Self {
+        Expr {
+            kind: ExprKind::BinOp(
+                kind, 
+                Box::new(lhs), 
+                Box::new(rhs)
+            ),
+            token
+        }
+    }
 }
 
 // Different kinds of statements recognized in the language

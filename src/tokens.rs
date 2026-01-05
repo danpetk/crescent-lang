@@ -17,7 +17,8 @@ pub enum TokenKind {
     CloseParen,
     Comma,
     Bang,
-    
+    EqSign,
+
     // Multi Char
 
 
@@ -47,6 +48,7 @@ impl fmt::Display for TokenKind {
             TokenKind::CloseParen => ")",
             TokenKind::Comma => ",",
             TokenKind::Bang => "!",
+            TokenKind::EqSign => "=",
             TokenKind::Identifier => "identifier",
             TokenKind::Return => "return",
             TokenKind::Func => "func",

@@ -1,4 +1,4 @@
-use crate::ast::{Expr, ExprKind, Stmt, StmtKind, Root};
+use crate::ast::{BinOpKind, Expr, ExprKind, Root, Stmt};
 use crate::error::ParserError;
 use crate::tokens::{TokenStream, TokenKind};
 use crate::compiler::Context;
@@ -95,9 +95,13 @@ impl<'ctx> Parser<'ctx> {
         let type_token = self.token_stream.expect(TokenKind::Identifier)?;
         let typee = self.ctx.source.get_spanned(&type_token.span);
 
-        self.ctx.symbols.borrow_mut().add_var(&ident_token, ident, typee)?;
+        let symbol = self.ctx.symbols.borrow_mut().add_var(&ident_token, ident, typee)?;
+        let eq_token = self.token_stream.expect(TokenKind::EqSign)?;
 
-        todo!()
+        let lhs = Expr::var(symbol, ident_token);
+        let rhs = self.parse_expr()?;
+
+        Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
     }
 
     fn parse_expr(&mut self) ->  Result<Expr, ParserError> {

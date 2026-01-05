@@ -29,9 +29,9 @@ impl Symbols {
 
     pub fn add_var(
         &mut self, 
-        var_token: &Token, 
-        var_ident: &str, 
-        type_ident: &str
+        _var_token: &Token, 
+        _var_ident: &str, 
+        _type_ident: &str
     ) -> Result<Symbol, ParserError> {
         todo!()
     }

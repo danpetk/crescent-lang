@@ -75,6 +75,7 @@ impl<'ctx> Lexer<'ctx> {
                 ',' => self.make_token(TokenKind::Comma),
                 '(' => self.make_token(TokenKind::OpenParen),
                 ')' => self.make_token(TokenKind::CloseParen),
+                '=' => self.make_token(TokenKind::EqSign),
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 _ => return Err(LexerError::InvalidToken { line: self.line, lexeme: c.to_string() })          
             }

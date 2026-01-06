@@ -34,15 +34,15 @@ impl<'ctx> Parser<'ctx> {
 
         let statement = match tok.kind {
 
-            TokenKind::OpenCurly => self.parse_block()?,
-            TokenKind::If => self.parse_if()?,
-            TokenKind::While => self.parse_while()?,
-            TokenKind::Let => self.parse_let()?,
+            TokenKind::OpenCurly => return Ok(self.parse_block()?),
+            TokenKind::If => return Ok(self.parse_if()?),
+            TokenKind::While => return Ok(self.parse_while()?),
             
+            TokenKind::Let => self.parse_let()?,
             _ => self.parse_expr()?.into() // No match so assume expr statement and let that find the error
-        
         };
 
+        self.token_stream.expect(TokenKind::Semi)?;
         Ok(statement)
     }
 
@@ -95,7 +95,7 @@ impl<'ctx> Parser<'ctx> {
         let type_token = self.token_stream.expect(TokenKind::Identifier)?;
         let typee = self.ctx.source.get_spanned(&type_token.span);
 
-        let symbol = self.ctx.symbols.borrow_mut().add_var(&ident_token, ident, typee)?;
+        let symbol = self.ctx.symbols.borrow_mut().add_local_var(&ident_token, ident, typee)?;
         let eq_token = self.token_stream.expect(TokenKind::EqSign)?;
 
         let lhs = Expr::var(symbol, ident_token);

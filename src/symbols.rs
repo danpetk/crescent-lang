@@ -3,9 +3,10 @@ use crate::tokens::Token;
 use crate::error::ParserError;
 
 pub struct VarInfo {
-
+    line: i32
 }
-#[derive(Debug)]
+
+#[derive(Debug, Clone, Copy)]
 pub struct Symbol(usize);
 
 #[derive(Default)]
@@ -24,15 +25,33 @@ impl Symbols {
     }
 
     pub fn pop_scope(&mut self) {
-        self.scopes.pop().expect("should always be paired with push_scope");
+        self.scopes.pop().expect("pop_scope should always be paired with push_scope");
     }
 
-    pub fn add_var(
+    pub fn add_local_var(
         &mut self, 
-        _var_token: &Token, 
-        _var_ident: &str, 
-        _type_ident: &str
+        var_token: &Token, 
+        var_ident: &str, 
+        type_ident: &str
     ) -> Result<Symbol, ParserError> {
-        todo!()
+        println!("{:?}", self.scopes);
+        let current_scope = self.scopes.last_mut().expect("can only add local var in a scope");
+
+        if let Some(var) = current_scope.get(var_ident) {
+            return Err(ParserError::VarRedeclared { line_redec: var_token.line, line_orig: self.variables[var.0].line, var_name: var_ident.to_string() })
+        }
+
+        let symbol = Symbol(self.variables.len());
+
+        current_scope.insert(var_ident.to_string(), symbol);
+        self.variables.push(VarInfo { line: var_token.line });
+
+        if type_ident != "i32" {
+            panic!("only i32 suppored rn")
+        }
+
+        Ok(symbol)
     }
 }
+
+

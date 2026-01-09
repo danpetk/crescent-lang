@@ -72,10 +72,41 @@ impl<'ctx> Lexer<'ctx> {
                 ':' => self.make_token(TokenKind::Colon),
                 '{' => self.make_token(TokenKind::OpenCurly),
                 '}' => self.make_token(TokenKind::CloseCurly),
-                ',' => self.make_token(TokenKind::Comma),
                 '(' => self.make_token(TokenKind::OpenParen),
                 ')' => self.make_token(TokenKind::CloseParen),
-                '=' => self.make_token(TokenKind::EqSign),
+                '!' => {
+                    if self.match_char('=') {
+                        self.make_token(TokenKind::BangEq)
+                    } else {
+                        self.make_token(TokenKind::Bang)
+                    }
+                },
+                '=' => {
+                    if self.match_char('=') {
+                        self.make_token(TokenKind::EqEq)
+                    } else {
+                        self.make_token(TokenKind::Eq)
+                    }
+                },
+                '<' => {
+                    if self.match_char('=') {
+                        self.make_token(TokenKind::LessEq)
+                    } else {
+                        self.make_token(TokenKind::LessThan)
+                    }
+                },
+                '>' => {
+                    if self.match_char('=') {
+                        self.make_token(TokenKind::GreaterEq)
+                    } else {
+                        self.make_token(TokenKind::GreaterThan)
+                    }
+                },
+                '+' => self.make_token(TokenKind::Plus),
+                '-' => self.make_token(TokenKind::Minus),
+                '*' => self.make_token(TokenKind::Star),
+                '/' => self.make_token(TokenKind::Slash),
+
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 _ => return Err(LexerError::InvalidToken { line: self.line, lexeme: c.to_string() })          
             }
@@ -101,6 +132,14 @@ impl<'ctx> Lexer<'ctx> {
         }
         self.position += c.len_utf8();
         Some(c)
+    }
+
+    fn match_char(&mut self, c: char) -> bool {
+        if let Some(next) = self.peek_char() && next == c {
+            self.advance_char();
+            return true;
+        }
+        false
     }
 
     fn lex_identifier(&mut self) -> Token {

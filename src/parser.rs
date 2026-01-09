@@ -96,7 +96,7 @@ impl<'ctx> Parser<'ctx> {
         let typee = self.ctx.source.get_spanned(&type_token.span);
 
         let symbol = self.ctx.symbols.borrow_mut().add_local_var(&ident_token, ident, typee)?;
-        let eq_token = self.token_stream.expect(TokenKind::EqSign)?;
+        let eq_token = self.token_stream.expect(TokenKind::Eq)?;
 
         let lhs = Expr::var(symbol, ident_token);
         let rhs = self.parse_expr()?;

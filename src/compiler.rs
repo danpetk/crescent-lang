@@ -1,5 +1,5 @@
 use std::error::Error;
-use crate::{lexer::Lexer, parser::Parser, symbols::Symbols, source::Source};
+use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
 use std::cell::RefCell;
 
 pub struct Context {
@@ -36,7 +36,6 @@ impl Compiler {
                 return Err(errors.into_iter().map(|e| Box::<dyn Error>::from(e)).collect());
             }
         };
-
 
         let mut parser = Parser::new(token_stream, &self.context);
         let ast = match parser.parse() {

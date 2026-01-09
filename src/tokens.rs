@@ -15,13 +15,22 @@ pub enum TokenKind {
     CloseCurly,
     OpenParen,
     CloseParen,
-    Comma,
     Bang,
-    EqSign,
-
+    Eq,
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    LessThan,
+    GreaterThan,
+    
     // Multi Char
-
-
+    LessEq,
+    BangEq,
+    EqEq,
+    GreaterEq,
+    
+    
     // Dynamic
     Identifier,
     
@@ -32,6 +41,7 @@ pub enum TokenKind {
     Else,
     While,
     Let,
+
     
     // Special
     EOF
@@ -46,9 +56,20 @@ impl fmt::Display for TokenKind {
             TokenKind::CloseCurly => "}",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
-            TokenKind::Comma => ",",
+
             TokenKind::Bang => "!",
-            TokenKind::EqSign => "=",
+            TokenKind::BangEq => "!=",
+            TokenKind::Eq => "=",
+            TokenKind::EqEq => "==",
+            TokenKind::Plus => "+",
+            TokenKind::Minus => "-",
+            TokenKind::Star => "*",
+            TokenKind::Slash => "/",
+            TokenKind::LessThan => "<",
+            TokenKind::LessEq => "<=",
+            TokenKind::GreaterThan => ">",
+            TokenKind::GreaterEq => ">=",
+
             TokenKind::Identifier => "identifier",
             TokenKind::Return => "return",
             TokenKind::Func => "func",

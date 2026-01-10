@@ -30,7 +30,6 @@ pub enum TokenKind {
     EqEq,
     GreaterEq,
     
-    
     // Dynamic
     Identifier,
     
@@ -131,12 +130,11 @@ impl TokenStream {
         Ok(tok)
     }
 
-    pub fn match_kind(&mut self, expected_kind: TokenKind) -> bool {
+    pub fn match_kind(&mut self, expected_kind: TokenKind) -> Option<Token> {
         if self.peek().kind == expected_kind {
-            self.advance();
-            return true;
+            return Some(self.advance());
         }
-        false
+        None
     }
 
     pub fn peek(&self) -> Token{

@@ -66,7 +66,7 @@ impl<'ctx> Parser<'ctx> {
         let cond = self.parse_expr()?;
         let do_if = self.parse_statement()?;
         
-        let do_else = if self.token_stream.match_kind(TokenKind::Else) {
+        let do_else = if self.token_stream.match_kind(TokenKind::Else).is_some() {
             Some(self.parse_statement()?)
         } else {
             None
@@ -105,10 +105,33 @@ impl<'ctx> Parser<'ctx> {
     }
 
     fn parse_expr(&mut self) ->  Result<Expr, ParserError> {
-        let token = self.token_stream.expect(TokenKind::Identifier)?;
-
-        // println!("\n\n\n{}\n\n\n", self.ctx.source.get_spanned(&token.span));
-        Ok(Expr {kind: ExprKind::Dummy, token})
+        Ok(self.parse_expr_4()?)
     }
+
+    fn parse_expr_4(&mut self) -> Result<Expr, ParserError> {
+        let mut lhs = self.parse_expr_3()?;
+        if let Some(op_token) = self.token_stream.match_kind(TokenKind::Eq) {
+            let rhs = self.parse_expr_4()?;
+            lhs = Expr::binary_op(BinOpKind::Assign, lhs, rhs, op_token)
+        }
+        Ok(lhs)
+    }
+
+    fn parse_expr_3(&mut self) -> Result<Expr, ParserError> {
+        todo!()
+    }
+
+    fn parse_expr_2(&mut self) -> Result<Expr, ParserError> {
+        todo!()
+    }
+
+    fn parse_expr_1(&mut self) -> Result<Expr, ParserError> {
+        todo!()
+    }
+
+    fn parse_term(&mut self) -> Result<Expr, ParserError> {
+        todo!()
+    }
+
 }
 

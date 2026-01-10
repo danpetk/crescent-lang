@@ -75,32 +75,20 @@ impl<'ctx> Lexer<'ctx> {
                 '(' => self.make_token(TokenKind::OpenParen),
                 ')' => self.make_token(TokenKind::CloseParen),
                 '!' => {
-                    if self.match_char('=') {
-                        self.make_token(TokenKind::BangEq)
-                    } else {
-                        self.make_token(TokenKind::Bang)
-                    }
+                    let kind = self.match_switch('=', TokenKind::BangEq, TokenKind::Bang);
+                    self.make_token(kind)
                 },
                 '=' => {
-                    if self.match_char('=') {
-                        self.make_token(TokenKind::EqEq)
-                    } else {
-                        self.make_token(TokenKind::Eq)
-                    }
+                    let kind = self.match_switch('=', TokenKind::EqEq, TokenKind::Eq);
+                    self.make_token(kind)
                 },
                 '<' => {
-                    if self.match_char('=') {
-                        self.make_token(TokenKind::LessEq)
-                    } else {
-                        self.make_token(TokenKind::LessThan)
-                    }
+                    let kind = self.match_switch('=', TokenKind::LessEq, TokenKind::LessThan);
+                    self.make_token(kind)
                 },
                 '>' => {
-                    if self.match_char('=') {
-                        self.make_token(TokenKind::GreaterEq)
-                    } else {
-                        self.make_token(TokenKind::GreaterThan)
-                    }
+                    let kind = self.match_switch('=', TokenKind::GreaterEq, TokenKind::GreaterThan);
+                    self.make_token(kind)
                 },
                 '+' => self.make_token(TokenKind::Plus),
                 '-' => self.make_token(TokenKind::Minus),
@@ -140,6 +128,19 @@ impl<'ctx> Lexer<'ctx> {
             return true;
         }
         false
+    }
+
+    fn match_switch(
+        &mut self,
+        c: char,
+        yes_kind: TokenKind,
+        no_kind: TokenKind
+    ) -> TokenKind {
+        if self.match_char(c) {
+            yes_kind
+        } else {
+            no_kind
+        }
     }
 
     fn lex_identifier(&mut self) -> Token {

@@ -1,1 +1,2 @@
 Intern strings on lex to remove symbol table allocations
+Pratt style parsing

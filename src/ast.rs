@@ -5,11 +5,21 @@ use crate::symbols::{Symbol};
 pub enum BinOpKind {
     Assign,
     Add,
+    Sub,
+    Mult,
+    Div,
+    Eq,
+    NotEq,
+    LessThan,
+    LessEq,
+    GreaterThan,
+    GreaterEq
 }
 
 #[derive(Debug)]
 pub enum UnOpKind {
     Not,
+    Neg
 }
 
 // Different kinds of expressions recognized in the language

@@ -55,10 +55,10 @@ impl fmt::Display for TokenKind {
             TokenKind::CloseCurly => "}",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
-
             TokenKind::Bang => "!",
-            TokenKind::BangEq => "!=",
+
             TokenKind::Eq => "=",
+            TokenKind::BangEq => "!=",
             TokenKind::EqEq => "==",
             TokenKind::Plus => "+",
             TokenKind::Minus => "-",

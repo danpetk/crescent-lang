@@ -1,5 +1,6 @@
-use crate::ast::{BinOpKind, Expr, ExprKind, Root, Stmt};
+use crate::ast::{BinOpKind, Expr, Root, Stmt};
 use crate::error::ParserError;
+use crate::symbols::{Symbol};
 use crate::tokens::{TokenStream, TokenKind};
 use crate::compiler::Context;
 
@@ -135,7 +136,16 @@ impl<'ctx> Parser<'ctx> {
     }
 
     fn parse_term(&mut self) -> Result<Expr, ParserError> {
-        todo!()
+        let tok = self.token_stream.advance();
+        match tok.kind {
+            TokenKind::Identifier => {
+                let var_name = self.ctx.source.get_spanned(&tok.span);
+                // let symbol = self.ctx.symbols.borrow().get_local_var(&tok, var_name)?;
+                let symbol = Symbol::gg();
+                Ok(Expr::var(symbol, tok))
+            },
+            _ => todo!()
+        }
     }
 
 }

@@ -22,7 +22,8 @@ impl Error for LexerError {} // nothing else needed since no source
 #[derive(Debug)]
 pub enum ParserError {
     UnexpectedToken{line: i32, expected: TokenKind, found: TokenKind},
-    VarRedeclared{line_redec: i32, line_orig: i32, var_name: String}
+    VarRedeclared{line_redec: i32, line_orig: i32, var_name: String},
+    VarUnknown{line: i32, var_name: String}
 }
 
 impl fmt::Display for ParserError {
@@ -31,7 +32,9 @@ impl fmt::Display for ParserError {
             Self::UnexpectedToken {line, expected, found} => 
                 write!(f, "ERROR (line {line}): Expected token '{expected}', found '{found}'"),
             Self::VarRedeclared { line_redec, line_orig, var_name } => 
-                write!(f, "ERROR(line {line_redec}): Variable '{var_name}' redeclared. (Orignally declared on line {line_orig})")
+                write!(f, "ERROR (line {line_redec}): Variable '{var_name}' redeclared. (Orignally declared on line {line_orig})"),
+            Self::VarUnknown { line, var_name } => 
+                write!(f, "ERROR (line {line}): Unknown variable '{var_name}'")
         }
     }
 }

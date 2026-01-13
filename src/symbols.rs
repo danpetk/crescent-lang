@@ -9,6 +9,12 @@ pub struct VarInfo {
 #[derive(Debug, Clone, Copy)]
 pub struct Symbol(usize);
 
+impl Symbol {
+    pub fn gg() -> Self {
+        Symbol{0:0}
+    }
+}
+
 #[derive(Default)]
 pub struct Symbols {
     scopes: Vec<HashMap<String, Symbol>>, // TODO: Change this to intered id when strings are interned
@@ -51,6 +57,22 @@ impl Symbols {
         }
 
         Ok(symbol)
+    }
+
+
+    pub fn get_local_var(
+        &self,
+        var_token: &Token, 
+        var_ident: &str, 
+    ) -> Result<Symbol, ParserError> {
+        let symbol = self.scopes.iter().rev().find_map(|map| {
+            map.get(var_ident)
+        });
+
+        match symbol {
+            Some(&s) => Ok(s),
+            None => Err(ParserError::VarUnknown { line: var_token.line, var_name: var_ident.to_string() })
+        }
     }
 }
 

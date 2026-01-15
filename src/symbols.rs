@@ -22,10 +22,6 @@ pub struct Symbols {
 }
 
 impl Symbols {
-    pub fn new() -> Symbols {
-        Symbols::default()
-    }
-
     pub fn push_scope(&mut self) {
         self.scopes.push(HashMap::new());
     }
@@ -72,6 +68,32 @@ impl Symbols {
         match symbol {
             Some(&s) => Ok(s),
             None => Err(ParserError::VarUnknown { line: var_token.line, var_name: var_ident.to_string() })
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Copy)]
+pub struct InternId(usize);
+
+#[derive(Default)]
+pub struct Interner {
+    interned_map: HashMap<String, InternId>,
+    next_id: usize
+}
+
+// TODO Storing the string might be suboptimal, look back to fix?
+impl Interner {
+    pub fn intern_string(&mut self, ident: &str) -> InternId {
+        match self.interned_map.get(ident) {
+            Some(id) => id.to_owned(),
+            None => {
+                let id = InternId(self.next_id);
+                self.interned_map.insert(ident.to_string(), id);
+                self.next_id += 1;
+                id
+            }
+
         }
     }
 }

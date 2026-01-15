@@ -1,17 +1,21 @@
 use std::error::Error;
-use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
+use crate::{lexer::Lexer, parser::Parser, source::Source};
+use crate::symbols::{Symbols, Interner};
 use std::cell::RefCell;
 
 pub struct Context {
     pub source: Source,
+    pub interner: RefCell<Interner>,
     pub symbols: RefCell<Symbols>
+
 }
 
 impl Context {
     pub fn new(source: String) -> Context {
         Context {
             source: Source::new(source),
-            symbols: RefCell::new(Symbols::new())
+            interner: RefCell::new(Interner::default()),
+            symbols: RefCell::new(Symbols::default())
         }
     }
 }

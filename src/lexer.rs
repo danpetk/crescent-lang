@@ -66,7 +66,7 @@ impl<'ctx> Lexer<'ctx> {
         self.start = self.position;
 
         let token = match self.advance_char() {
-            None => Token{kind: TokenKind::EOF, span: SourceSpan::dummy(), line: self.line},
+            None => Token{kind: TokenKind::EOF, lexeme: "".to_string(), line: self.line},
             Some(c) => match c {
                 ';' => self.make_token(TokenKind::Semi),
                 ':' => self.make_token(TokenKind::Colon),
@@ -161,10 +161,11 @@ impl<'ctx> Lexer<'ctx> {
     fn make_token(&self, kind: TokenKind) -> Token {
         Token {
             kind,
-            span: SourceSpan {
-                low: self.start,
-                high: self.position
-            },
+            lexeme: self.current_lexeme().to_string(),
+            // span: SourceSpan {
+            //     low: self.start,
+            //     high: self.position
+            // },
             line: self.line
         }
     }

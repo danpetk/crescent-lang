@@ -87,19 +87,14 @@ impl<'ctx> Parser<'ctx> {
     // ugly will be fixed
     fn parse_let(&mut self) -> Result<Stmt, ParserError> {
         self.token_stream.expect(TokenKind::Let)?;
-
-        let ident_token = self.token_stream.expect(TokenKind::Identifier)?;
-        let ident = self.ctx.source.get_spanned(&ident_token.span);
-
+        let var_token = self.token_stream.expect(TokenKind::Identifier)?;
         self.token_stream.expect(TokenKind::Colon)?;
-        
         let type_token = self.token_stream.expect(TokenKind::Identifier)?;
-        let typee = self.ctx.source.get_spanned(&type_token.span);
 
-        let symbol = self.ctx.symbols.borrow_mut().add_local_var(&ident_token, ident, typee)?;
+        let symbol = self.ctx.symbols.borrow_mut().add_local_var(&var_token, &type_token)?;
         let eq_token = self.token_stream.expect(TokenKind::Eq)?;
 
-        let lhs = Expr::var(symbol, ident_token);
+        let lhs = Expr::var(symbol, var_token);
         let rhs = self.parse_expr()?;
 
         Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
@@ -139,7 +134,7 @@ impl<'ctx> Parser<'ctx> {
         let tok = self.token_stream.advance();
         match tok.kind {
             TokenKind::Identifier => {
-                let var_name = self.ctx.source.get_spanned(&tok.span);
+                // let var_name = self.ctx.source.get_spanned(&tok.span);
                 // let symbol = self.ctx.symbols.borrow().get_local_var(&tok, var_name)?;
                 let symbol = Symbol::gg();
                 Ok(Expr::var(symbol, tok))

@@ -93,10 +93,15 @@ impl SourceSpan {
     }
 }
 
+// Tokens holding lexemes as owned strings is something I am not proud of
+// Since it duplicates the source string and is not memory optimal
+// But this lets me iterate much quicker on the other parts of the code
+// Will change later
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
-    pub span: SourceSpan,
+    pub lexeme: String,
+    // pub span: SourceSpan,
     pub line: i32,
 }
 

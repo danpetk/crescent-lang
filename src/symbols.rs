@@ -37,22 +37,21 @@ impl Symbols {
     pub fn add_local_var(
         &mut self, 
         var_token: &Token, 
-        var_ident: &str, 
-        type_ident: &str
+        type_token: &Token
     ) -> Result<Symbol, ParserError> {
         println!("{:?}", self.scopes);
         let current_scope = self.scopes.last_mut().expect("can only add local var in a scope");
 
-        if let Some(var) = current_scope.get(var_ident) {
-            return Err(ParserError::VarRedeclared { line_redec: var_token.line, line_orig: self.variables[var.0].line, var_name: var_ident.to_string() })
+        if let Some(var) = current_scope.get(&var_token.lexeme) {
+            return Err(ParserError::VarRedeclared { line_redec: var_token.line, line_orig: self.variables[var.0].line, var_name: var_token.lexeme.to_owned() })
         }
 
         let symbol = Symbol(self.variables.len());
 
-        current_scope.insert(var_ident.to_string(), symbol);
+        current_scope.insert(var_token.lexeme.to_owned(), symbol);
         self.variables.push(VarInfo { line: var_token.line });
 
-        if type_ident != "i32" {
+        if type_token.lexeme != "i32" {
             panic!("only i32 suppored rn")
         }
 

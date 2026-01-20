@@ -62,15 +62,14 @@ impl Symbols {
     pub fn get_local_var(
         &self,
         var_token: &Token, 
-        var_ident: &str, 
     ) -> Result<Symbol, ParserError> {
         let symbol = self.scopes.iter().rev().find_map(|map| {
-            map.get(var_ident)
+            map.get(&var_token.lexeme)
         });
 
         match symbol {
             Some(&s) => Ok(s),
-            None => Err(ParserError::VarUnknown { line: var_token.line, var_name: var_ident.to_string() })
+            None => Err(ParserError::VarUnknown { line: var_token.line, var_name: var_token.lexeme.to_owned() })
         }
     }
 }

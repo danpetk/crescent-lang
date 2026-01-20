@@ -1,6 +1,5 @@
 use crate::ast::{BinOpKind, Expr, Root, Stmt};
 use crate::error::ParserError;
-use crate::symbols::{Symbol};
 use crate::tokens::{TokenStream, TokenKind};
 use crate::compiler::Context;
 
@@ -84,18 +83,16 @@ impl<'ctx> Parser<'ctx> {
         Ok(Stmt::while_loop(cond, statement, token))
     }
 
-    // ugly will be fixed
     fn parse_let(&mut self) -> Result<Stmt, ParserError> {
         self.token_stream.expect(TokenKind::Let)?;
         let var_token = self.token_stream.expect(TokenKind::Identifier)?;
         self.token_stream.expect(TokenKind::Colon)?;
         let type_token = self.token_stream.expect(TokenKind::Identifier)?;
-
-        let symbol = self.ctx.symbols.borrow_mut().add_local_var(&var_token, &type_token)?;
         let eq_token = self.token_stream.expect(TokenKind::Eq)?;
-
-        let lhs = Expr::var(symbol, var_token);
+        
         let rhs = self.parse_expr()?;
+        let symbol = self.ctx.symbols.borrow_mut().add_local_var(&var_token, &type_token)?;
+        let lhs = Expr::var(symbol, var_token);
 
         Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
     }
@@ -131,14 +128,18 @@ impl<'ctx> Parser<'ctx> {
     }
 
     fn parse_term(&mut self) -> Result<Expr, ParserError> {
-        let tok = self.token_stream.advance();
-        match tok.kind {
+        let token = self.token_stream.advance();
+        match token.kind {
             TokenKind::Identifier => {
-                // let var_name = self.ctx.source.get_spanned(&tok.span);
-                // let symbol = self.ctx.symbols.borrow().get_local_var(&tok, var_name)?;
-                let symbol = Symbol::gg();
-                Ok(Expr::var(symbol, tok))
+                let symbol = self.ctx.symbols.borrow().get_local_var(&token)?;
+                Ok(Expr::var(symbol, token))
             },
+            TokenKind::Literal => {
+                let val: i32 = token.lexeme.parse().unwrap_or_else(|_| {
+                    todo!();
+                });
+                Ok(Expr::lit(val, token))
+            }
             _ => todo!()
         }
     }

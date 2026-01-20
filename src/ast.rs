@@ -28,6 +28,7 @@ pub enum ExprKind {
     BinOp(BinOpKind, Box<Expr>, Box<Expr>),
     UnOp(UnOpKind, Box<Expr>),
     Var(Symbol),
+    Literal(i32),
     Dummy
 }
 
@@ -41,6 +42,13 @@ impl Expr {
     pub fn var(symbol: Symbol, token: Token) -> Self {
         Expr {
             kind: ExprKind::Var(symbol),
+            token
+        }
+    }
+
+    pub fn lit(val: i32, token: Token) -> Self {
+        Expr {
+            kind: ExprKind::Literal(val),
             token
         }
     }

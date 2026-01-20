@@ -96,6 +96,7 @@ impl<'ctx> Lexer<'ctx> {
                 '/' => self.make_token(TokenKind::Slash),
 
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
+                x if x.is_numeric() => self.lex_literal(),
                 _ => return Err(LexerError::InvalidToken { line: self.line, lexeme: c.to_string() })          
             }
         };
@@ -152,6 +153,14 @@ impl<'ctx> Lexer<'ctx> {
             .unwrap_or(TokenKind::Identifier);
         
         self.make_token(token_kind)
+    }
+
+    fn lex_literal(&mut self) -> Token {
+        while let Some(c) = self.peek_char() && c.is_numeric() {
+            self.advance_char();
+        }
+
+        self.make_token(TokenKind::Literal)
     }
 
     fn current_lexeme(&self) -> &'ctx str {

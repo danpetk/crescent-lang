@@ -51,7 +51,11 @@ impl Diagnostics {
         self.diagnostics.push(diagnostic);
     }
 
-    pub fn has_errors(&self) -> bool {
+    pub fn has_diagnostics(&self) -> bool {
         self.diagnostics.len() > 0
+    }
+
+    pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
+        std::mem::take(&mut self.diagnostics)
     }
 }

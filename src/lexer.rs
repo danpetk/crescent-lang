@@ -1,6 +1,6 @@
 use crate::compiler::Context;
-use crate::diagnostic::LexerError;
-use crate::tokens::*;
+use crate::diagnostic::{Diagnostic, DiagnosticKind};
+use crate::tokens::{TokenKind, Token, TokenStream};
 
 fn is_identifier_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
@@ -35,33 +35,26 @@ impl<'ctx> Lexer<'ctx> {
         }
     }
 
-    pub fn tokenize(&mut self) -> Result<TokenStream, Vec<LexerError>> {
+    pub fn tokenize(&mut self) -> TokenStream {
         let mut tokens: Vec<Token> = vec![];
-        let mut errors: Vec<LexerError> = vec![];
 
         loop {
             match self.next_token() {
-                Ok(token) => {
-                    if token.kind == TokenKind::EOF {
-                        tokens.push(token);
+                Some(token) => {
+                    let is_eof = token.kind == TokenKind::EOF;
+                    tokens.push(token);
+                    if is_eof {
                         break;
                     }
-                    tokens.push(token);
                 }
-                Err(error) => {
-                    errors.push(error);
-                }
+                None => {}
             };
         }
 
-        if errors.is_empty() {
-            Ok(TokenStream::new(tokens))
-        } else {
-            Err(errors)
-        }
+        TokenStream::new(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Token, LexerError> {
+    fn next_token(&mut self) -> Option<Token> {
         self.skip_whitespace();
         self.start = self.position;
 
@@ -102,15 +95,18 @@ impl<'ctx> Lexer<'ctx> {
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 x if x.is_numeric() => self.lex_literal(),
                 _ => {
-                    return Err(LexerError::InvalidToken {
-                        line: self.line,
-                        lexeme: c.to_string(),
-                    });
+                    self.ctx.diags.borrow_mut().report(
+                        Diagnostic {
+                            line: self.line,
+                            kind: DiagnosticKind::InvalidToken { lexeme: c.to_string() }
+                        }
+                    );
+                    return None
                 }
             },
         };
 
-        Ok(token)
+        Some(token)
     }
 
     fn skip_whitespace(&mut self) {

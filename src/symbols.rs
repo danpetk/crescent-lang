@@ -22,10 +22,6 @@ pub struct Symbols {
 }
 
 impl Symbols {
-    pub fn new() -> Symbols {
-        Symbols::default()
-    }
-
     pub fn push_scope(&mut self) {
         self.scopes.push(HashMap::new());
     }

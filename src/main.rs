@@ -1,12 +1,12 @@
-use std::process::exit;
-use std::fs;
 use lang::Compiler;
+use std::fs;
+use std::process::exit;
 
 fn main() {
-    let filename =  std::env::args().nth(1).unwrap_or_else(||{
+    let filename = std::env::args().nth(1).unwrap_or_else(|| {
         eprintln!("Invalid Arguments!");
         eprintln!("Expected Usage: lang {{filename}}");
-        exit(1)        
+        exit(1)
     });
 
     let source = fs::read_to_string(&filename).unwrap_or_else(|_| {
@@ -22,6 +22,4 @@ fn main() {
         }
         exit(1);
     }
-
 }
-

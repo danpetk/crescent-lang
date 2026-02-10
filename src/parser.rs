@@ -1,20 +1,17 @@
 use crate::ast::{BinOpKind, Expr, Root, Stmt};
-use crate::error::ParserError;
-use crate::tokens::{TokenStream, TokenKind};
 use crate::compiler::Context;
+use crate::tokens::{TokenKind, TokenStream};
 
 pub struct Parser<'ctx> {
     ctx: &'ctx Context,
     token_stream: TokenStream,
-    _errors: Vec<ParserError>
 }
 
 impl<'ctx> Parser<'ctx> {
-    pub fn new(token_stream: TokenStream,context: &'ctx Context ) -> Parser<'ctx> {
+    pub fn new(token_stream: TokenStream, context: &'ctx Context) -> Parser<'ctx> {
         Parser {
             ctx: context,
             token_stream,
-            _errors: vec![]
         }
     }
 
@@ -23,23 +20,22 @@ impl<'ctx> Parser<'ctx> {
         while self.token_stream.any() {
             match self.parse_statement() {
                 Ok(stmt) => statements.push(stmt),
-                Err(err) => return Err(vec![err])
+                Err(err) => return Err(vec![err]),
             }
         }
-        Ok(Root{top: statements})
+        Ok(Root { top: statements })
     }
 
     fn parse_statement(&mut self) -> Result<Stmt, ParserError> {
         let tok = self.token_stream.peek();
 
         let statement = match tok.kind {
-
             TokenKind::OpenCurly => return Ok(self.parse_block()?),
             TokenKind::If => return Ok(self.parse_if()?),
             TokenKind::While => return Ok(self.parse_while()?),
-            
+
             TokenKind::Let => self.parse_let()?,
-            _ => self.parse_expr()?.into() // No match so assume expr statement and let that find the error
+            _ => self.parse_expr()?.into(), // No match so assume expr statement and let that find the error
         };
 
         self.token_stream.expect(TokenKind::Semi)?;
@@ -65,7 +61,7 @@ impl<'ctx> Parser<'ctx> {
         let token = self.token_stream.expect(TokenKind::If)?;
         let cond = self.parse_expr()?;
         let do_if = self.parse_statement()?;
-        
+
         let do_else = if self.token_stream.match_kind(TokenKind::Else).is_some() {
             Some(self.parse_statement()?)
         } else {
@@ -79,7 +75,7 @@ impl<'ctx> Parser<'ctx> {
         let token = self.token_stream.expect(TokenKind::While)?;
         let cond = self.parse_expr()?;
         let statement = self.parse_statement()?;
-        
+
         Ok(Stmt::while_loop(cond, statement, token))
     }
 
@@ -89,15 +85,19 @@ impl<'ctx> Parser<'ctx> {
         self.token_stream.expect(TokenKind::Colon)?;
         let type_token = self.token_stream.expect(TokenKind::Identifier)?;
         let eq_token = self.token_stream.expect(TokenKind::Eq)?;
-        
+
         let rhs = self.parse_expr()?;
-        let symbol = self.ctx.symbols.borrow_mut().add_local_var(&var_token, &type_token)?;
+        let symbol = self
+            .ctx
+            .symbols
+            .borrow_mut()
+            .add_local_var(&var_token, &type_token)?;
         let lhs = Expr::var(symbol, var_token);
 
         Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
     }
 
-    fn parse_expr(&mut self) ->  Result<Expr, ParserError> {
+    fn parse_expr(&mut self) -> Result<Expr, ParserError> {
         Ok(self.parse_expr_recursive(None, 4)?)
     }
 
@@ -105,17 +105,23 @@ impl<'ctx> Parser<'ctx> {
         if prec == 0 {
             return Ok(match lhs {
                 Some(expr) => expr,
-                None => self.parse_term()?
-            })
+                None => self.parse_term()?,
+            });
         }
 
-        let mut lhs = self.parse_expr_recursive(lhs, prec-1)?;
+        let mut lhs = self.parse_expr_recursive(lhs, prec - 1)?;
         let next = self.token_stream.peek();
 
-        if let Some((op_prec, assoc_kind, op_kind)) = get_op_info(next.kind) && op_prec == prec {
+        if let Some((op_prec, assoc_kind, op_kind)) = get_op_info(next.kind)
+            && op_prec == prec
+        {
             let op = self.token_stream.advance();
-            let right_prec = if assoc_kind == AssocKind::Right {prec} else {prec-1};
-        
+            let right_prec = if assoc_kind == AssocKind::Right {
+                prec
+            } else {
+                prec - 1
+            };
+
             let rhs = self.parse_expr_recursive(None, right_prec)?;
             lhs = Expr::binary_op(op_kind, lhs, rhs, op);
 
@@ -123,7 +129,7 @@ impl<'ctx> Parser<'ctx> {
                 lhs = self.parse_expr_recursive(Some(lhs), prec)?
             }
         }
-        
+
         Ok(lhs)
     }
 
@@ -133,41 +139,40 @@ impl<'ctx> Parser<'ctx> {
             TokenKind::Identifier => {
                 let symbol = self.ctx.symbols.borrow().get_local_var(&token)?;
                 Ok(Expr::var(symbol, token))
-            },
+            }
             TokenKind::Literal => {
                 let val: i32 = token.lexeme.parse().unwrap_or_else(|_| {
                     todo!();
                 });
                 Ok(Expr::lit(val, token))
             }
-            _ => todo!()
+            _ => todo!(),
         }
     }
-
 }
 
 #[derive(PartialEq)]
 enum AssocKind {
     Left,
     Right,
-    None
+    None,
 }
 
 fn get_op_info(kind: TokenKind) -> Option<(u32, AssocKind, BinOpKind)> {
-    Some(
-        match kind {
-            TokenKind::Eq => (4, AssocKind::Right, BinOpKind::Assign),
-            TokenKind::EqEq => (3, AssocKind::None, BinOpKind::Equals),
-            TokenKind::BangEq => (3, AssocKind::None, BinOpKind::NotEquals),
-            TokenKind::LessThan => (3, AssocKind::None, BinOpKind::LessThan),
-            TokenKind::LessEq => (3, AssocKind::None, BinOpKind::LessEq),
-            TokenKind::GreaterThan => (3, AssocKind::None, BinOpKind::GreaterThan),
-            TokenKind::GreaterEq => (3, AssocKind::None, BinOpKind::GreaterEq),
-            TokenKind::Plus => (2, AssocKind::Left, BinOpKind::Add),
-            TokenKind::Minus => (2, AssocKind::Left, BinOpKind::Sub),
-            TokenKind::Star => (1, AssocKind::Left, BinOpKind::Mult),
-            TokenKind::Slash => (1, AssocKind::Left, BinOpKind::Div),
-            _ => { return None; }
+    Some(match kind {
+        TokenKind::Eq => (4, AssocKind::Right, BinOpKind::Assign),
+        TokenKind::EqEq => (3, AssocKind::None, BinOpKind::Equals),
+        TokenKind::BangEq => (3, AssocKind::None, BinOpKind::NotEquals),
+        TokenKind::LessThan => (3, AssocKind::None, BinOpKind::LessThan),
+        TokenKind::LessEq => (3, AssocKind::None, BinOpKind::LessEq),
+        TokenKind::GreaterThan => (3, AssocKind::None, BinOpKind::GreaterThan),
+        TokenKind::GreaterEq => (3, AssocKind::None, BinOpKind::GreaterEq),
+        TokenKind::Plus => (2, AssocKind::Left, BinOpKind::Add),
+        TokenKind::Minus => (2, AssocKind::Left, BinOpKind::Sub),
+        TokenKind::Star => (1, AssocKind::Left, BinOpKind::Mult),
+        TokenKind::Slash => (1, AssocKind::Left, BinOpKind::Div),
+        _ => {
+            return None;
         }
-    )
+    })
 }

@@ -1,3 +1,4 @@
+use crate::diagnostic::Diagnostics;
 use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
 use std::cell::RefCell;
 use std::error::Error;
@@ -5,13 +6,15 @@ use std::error::Error;
 pub struct Context {
     pub source: Source,
     pub symbols: RefCell<Symbols>,
+    pub diags: RefCell<Diagnostics>
 }
 
 impl Context {
     pub fn new(source: String) -> Context {
         Context {
             source: Source::new(source),
-            symbols: RefCell::new(Symbols::new()),
+            symbols: RefCell::new(Symbols::default()),
+            diags: RefCell::new(Diagnostics::default())
         }
     }
 }

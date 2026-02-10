@@ -31,8 +31,8 @@ impl fmt::Display for DiagnosticKind {
 
 #[derive(Debug)]
 pub struct Diagnostic {
-    line: i32,
-    kind: DiagnosticKind,
+    pub line: i32,
+    pub kind: DiagnosticKind,
 }
 
 impl fmt::Display for Diagnostic {

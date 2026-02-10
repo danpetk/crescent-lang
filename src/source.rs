@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::tokens::SourceSpan;
 
 pub struct Source {
-    src: String
+    src: String,
 }
 
 impl Source {

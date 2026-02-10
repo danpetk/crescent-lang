@@ -1,5 +1,5 @@
-use crate::error::LexerError;
 use crate::compiler::Context;
+use crate::diagnostic::LexerError;
 use crate::tokens::*;
 
 fn is_identifier_char(c: char) -> bool {
@@ -14,7 +14,7 @@ fn get_keyword(identifier: &str) -> Option<TokenKind> {
         "else" => Some(TokenKind::Else),
         "while" => Some(TokenKind::While),
         "let" => Some(TokenKind::Let),
-        _ => None
+        _ => None,
     }
 }
 
@@ -22,32 +22,32 @@ pub struct Lexer<'ctx> {
     ctx: &'ctx Context,
     start: usize,
     position: usize,
-    line: i32
+    line: i32,
 }
 
 impl<'ctx> Lexer<'ctx> {
     pub fn new(ctx: &'ctx Context) -> Lexer<'ctx> {
-        Lexer { 
+        Lexer {
             ctx,
             start: 0,
             position: 0,
-            line: 1
+            line: 1,
         }
     }
 
     pub fn tokenize(&mut self) -> Result<TokenStream, Vec<LexerError>> {
         let mut tokens: Vec<Token> = vec![];
         let mut errors: Vec<LexerError> = vec![];
-        
+
         loop {
             match self.next_token() {
                 Ok(token) => {
-                    if token.kind == TokenKind::EOF{
+                    if token.kind == TokenKind::EOF {
                         tokens.push(token);
                         break;
                     }
                     tokens.push(token);
-                },
+                }
                 Err(error) => {
                     errors.push(error);
                 }
@@ -66,7 +66,11 @@ impl<'ctx> Lexer<'ctx> {
         self.start = self.position;
 
         let token = match self.advance_char() {
-            None => Token{kind: TokenKind::EOF, lexeme: "".to_string(), line: self.line},
+            None => Token {
+                kind: TokenKind::EOF,
+                lexeme: "".to_string(),
+                line: self.line,
+            },
             Some(c) => match c {
                 ';' => self.make_token(TokenKind::Semi),
                 ':' => self.make_token(TokenKind::Colon),
@@ -77,19 +81,19 @@ impl<'ctx> Lexer<'ctx> {
                 '!' => {
                     let kind = self.match_switch('=', TokenKind::BangEq, TokenKind::Bang);
                     self.make_token(kind)
-                },
+                }
                 '=' => {
                     let kind = self.match_switch('=', TokenKind::EqEq, TokenKind::Eq);
                     self.make_token(kind)
-                },
+                }
                 '<' => {
                     let kind = self.match_switch('=', TokenKind::LessEq, TokenKind::LessThan);
                     self.make_token(kind)
-                },
+                }
                 '>' => {
                     let kind = self.match_switch('=', TokenKind::GreaterEq, TokenKind::GreaterThan);
                     self.make_token(kind)
-                },
+                }
                 '+' => self.make_token(TokenKind::Plus),
                 '-' => self.make_token(TokenKind::Minus),
                 '*' => self.make_token(TokenKind::Star),
@@ -97,19 +101,26 @@ impl<'ctx> Lexer<'ctx> {
 
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 x if x.is_numeric() => self.lex_literal(),
-                _ => return Err(LexerError::InvalidToken { line: self.line, lexeme: c.to_string() })          
-            }
+                _ => {
+                    return Err(LexerError::InvalidToken {
+                        line: self.line,
+                        lexeme: c.to_string(),
+                    });
+                }
+            },
         };
 
         Ok(token)
-    } 
+    }
 
     fn skip_whitespace(&mut self) {
-        while let Some(c) = self.peek_char() && c.is_whitespace() {
+        while let Some(c) = self.peek_char()
+            && c.is_whitespace()
+        {
             self.advance_char();
         }
     }
-    
+
     fn peek_char(&self) -> Option<char> {
         return self.ctx.source[self.position..].chars().next();
     }
@@ -124,19 +135,16 @@ impl<'ctx> Lexer<'ctx> {
     }
 
     fn match_char(&mut self, c: char) -> bool {
-        if let Some(next) = self.peek_char() && next == c {
+        if let Some(next) = self.peek_char()
+            && next == c
+        {
             self.advance_char();
             return true;
         }
         false
     }
 
-    fn match_switch(
-        &mut self,
-        c: char,
-        yes_kind: TokenKind,
-        no_kind: TokenKind
-    ) -> TokenKind {
+    fn match_switch(&mut self, c: char, yes_kind: TokenKind, no_kind: TokenKind) -> TokenKind {
         if self.match_char(c) {
             yes_kind
         } else {
@@ -145,18 +153,21 @@ impl<'ctx> Lexer<'ctx> {
     }
 
     fn lex_identifier(&mut self) -> Token {
-        while let Some(c) = self.peek_char() && is_identifier_char(c) {
-            self.advance_char();    
-        }    
+        while let Some(c) = self.peek_char()
+            && is_identifier_char(c)
+        {
+            self.advance_char();
+        }
 
-        let token_kind = get_keyword(self.current_lexeme())
-            .unwrap_or(TokenKind::Identifier);
-        
+        let token_kind = get_keyword(self.current_lexeme()).unwrap_or(TokenKind::Identifier);
+
         self.make_token(token_kind)
     }
 
     fn lex_literal(&mut self) -> Token {
-        while let Some(c) = self.peek_char() && c.is_numeric() {
+        while let Some(c) = self.peek_char()
+            && c.is_numeric()
+        {
             self.advance_char();
         }
 
@@ -175,7 +186,7 @@ impl<'ctx> Lexer<'ctx> {
             //     low: self.start,
             //     high: self.position
             // },
-            line: self.line
+            line: self.line,
         }
     }
 }

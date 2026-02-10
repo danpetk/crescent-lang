@@ -1,13 +1,16 @@
+use crate::diagnostic::ParserError;
 use std::fmt::{self};
-use crate::error::ParserError;
 
 fn unexpected_token_error(actual: Token, expected: TokenKind) -> ParserError {
-    ParserError::UnexpectedToken { line: actual.line, expected, found: actual.kind}
+    ParserError::UnexpectedToken {
+        line: actual.line,
+        expected,
+        found: actual.kind,
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
-
     // Single Char
     Semi,
     Colon,
@@ -23,17 +26,17 @@ pub enum TokenKind {
     Slash,
     LessThan,
     GreaterThan,
-    
+
     // Multi Char
     LessEq,
     BangEq,
     EqEq,
     GreaterEq,
-    
+
     // Dynamic
     Identifier,
     Literal,
-    
+
     // Keywords
     Return,
     Func,
@@ -42,16 +45,15 @@ pub enum TokenKind {
     While,
     Let,
 
-    
     // Special
-    EOF
+    EOF,
 }
 
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let rep = match self {
             TokenKind::Semi => ";",
-            TokenKind::Colon => ":", 
+            TokenKind::Colon => ":",
             TokenKind::OpenCurly => "{",
             TokenKind::CloseCurly => "}",
             TokenKind::OpenParen => "(",
@@ -72,14 +74,14 @@ impl fmt::Display for TokenKind {
 
             TokenKind::Identifier => "identifier",
             TokenKind::Literal => "literal",
-            
+
             TokenKind::Return => "return",
             TokenKind::Func => "func",
             TokenKind::If => "if",
             TokenKind::Else => "else",
             TokenKind::While => "while",
             TokenKind::Let => "let",
-            TokenKind::EOF => "EOF"
+            TokenKind::EOF => "EOF",
         };
         write!(f, "{rep}")
     }
@@ -87,7 +89,7 @@ impl fmt::Display for TokenKind {
 #[derive(Debug, Clone)]
 pub struct SourceSpan {
     pub low: usize,
-    pub high: usize
+    pub high: usize,
 }
 
 impl SourceSpan {
@@ -97,9 +99,9 @@ impl SourceSpan {
 }
 
 // Tokens holding lexemes as owned strings is something I am not proud of
-// Since it duplicates the source string and is not memory optimal
-// But this lets me iterate much quicker on the other parts of the code
-// Will change later
+// since it duplicates the source string and is not memory optimal,
+// but this lets me iterate much quicker on the other parts of the code.
+// I can change this later to make it more performant
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
@@ -111,19 +113,19 @@ pub struct Token {
 // Nothing to do with proc_macro::TokenStream :)
 pub struct TokenStream {
     tokens: Vec<Token>,
-    pos: usize
+    pos: usize,
 }
 
 impl TokenStream {
     pub fn new(tokens: Vec<Token>) -> TokenStream {
-        TokenStream {
-            tokens,
-            pos: 0
-        }
+        TokenStream { tokens, pos: 0 }
     }
 
     pub fn advance(&mut self) -> Token {
-        let token = self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds");
+        let token = self
+            .tokens
+            .get(self.pos)
+            .expect("advance should not allow pos to be out of bounds");
         if token.kind != TokenKind::EOF {
             self.pos += 1;
         }
@@ -133,7 +135,7 @@ impl TokenStream {
     pub fn expect(&mut self, expected_kind: TokenKind) -> Result<Token, ParserError> {
         let tok = self.advance();
         if tok.kind != expected_kind {
-            return Err(unexpected_token_error(tok, expected_kind))
+            return Err(unexpected_token_error(tok, expected_kind));
         }
         Ok(tok)
     }
@@ -145,8 +147,11 @@ impl TokenStream {
         None
     }
 
-    pub fn peek(&self) -> Token{
-        self.tokens.get(self.pos).expect("advance should not allow pos to be out of bounds").clone()
+    pub fn peek(&self) -> Token {
+        self.tokens
+            .get(self.pos)
+            .expect("advance should not allow pos to be out of bounds")
+            .clone()
     }
 
     pub fn any(&self) -> bool {

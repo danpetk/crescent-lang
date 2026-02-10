@@ -1,4 +1,4 @@
-use crate::diagnostic::Diagnostics;
+use crate::diagnostic::{Diagnostics, Diagnostic};
 use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
 use std::cell::RefCell;
 use std::error::Error;
@@ -20,29 +20,26 @@ impl Context {
 }
 
 pub struct Compiler {
-    context: Context,
+    ctx: Context,
 }
 
 impl Compiler {
     pub fn new(source: String) -> Compiler {
         Compiler {
-            context: Context::new(source),
+            ctx: Context::new(source),
         }
     }
 
-    pub fn compile(&mut self) -> Result<(), Vec<Box<dyn Error>>> {
-        let mut lexer = Lexer::new(&self.context);
-        let token_stream = match lexer.tokenize() {
-            Ok(stream) => stream,
-            Err(errors) => {
-                return Err(errors
-                    .into_iter()
-                    .map(|e| Box::<dyn Error>::from(e))
-                    .collect());
-            }
-        };
+    pub fn compile(&mut self) -> Result<(), Vec<Diagnostic>> {
+        let mut lexer = Lexer::new(&self.ctx);
+        
+        let token_stream = lexer.tokenize();   
+        if self.ctx.diags.borrow().has_diagnostics() {
+            return Err(self.ctx.diags.borrow_mut().take_diagnostics())
+        }
 
-        let mut parser = Parser::new(token_stream, &self.context);
+
+        let mut parser = Parser::new(token_stream, &self.ctx);
         let ast = match parser.parse() {
             Ok(ast) => ast,
             Err(errors) => {

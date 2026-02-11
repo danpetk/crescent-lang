@@ -1,4 +1,4 @@
-use crate::diagnostic::ParserError;
+use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::Token;
 use std::collections::HashMap;
 
@@ -36,18 +36,19 @@ impl Symbols {
         &mut self,
         var_token: &Token,
         type_token: &Token,
-    ) -> Result<Symbol, ParserError> {
-        println!("{:?}", self.scopes);
+    ) -> Result<Symbol, Diagnostic> {
         let current_scope = self
             .scopes
             .last_mut()
             .expect("can only add local var in a scope");
 
         if let Some(var) = current_scope.get(&var_token.lexeme) {
-            return Err(ParserError::VarRedeclared {
-                line_redec: var_token.line,
-                line_orig: self.variables[var.0].line,
-                var_name: var_token.lexeme.to_owned(),
+            return Err(Diagnostic {
+                line: var_token.line,
+                kind: DiagnosticKind::VarRedeclared {
+                    original_line: self.variables[var.0].line,
+                    var_name: var_token.lexeme.to_owned(),
+                },
             });
         }
 
@@ -65,7 +66,7 @@ impl Symbols {
         Ok(symbol)
     }
 
-    pub fn get_local_var(&self, var_token: &Token) -> Result<Symbol, ParserError> {
+    pub fn get_local_var(&self, var_token: &Token) -> Result<Symbol, Diagnostic> {
         let symbol = self
             .scopes
             .iter()
@@ -74,9 +75,11 @@ impl Symbols {
 
         match symbol {
             Some(&s) => Ok(s),
-            None => Err(ParserError::VarUnknown {
+            None => Err(Diagnostic {
                 line: var_token.line,
-                var_name: var_token.lexeme.to_owned(),
+                kind: DiagnosticKind::VarUnknown {
+                    var_name: var_token.lexeme.to_owned(),
+                },
             }),
         }
     }

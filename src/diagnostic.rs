@@ -1,13 +1,23 @@
-use crate::tokens::{TokenKind};
+use crate::tokens::TokenKind;
 use std::fmt;
 
 // Again, I'd like to avoid storing owned strings in the future
 #[derive(Debug)]
 pub enum DiagnosticKind {
-    InvalidToken { lexeme: String },
-    UnexpectedToken { expected: TokenKind, found: TokenKind },
-    VarRedeclared { original_line: i32, var_name: String },
-    VarUnknown { var_name: String }
+    InvalidToken {
+        lexeme: String,
+    },
+    UnexpectedToken {
+        expected: TokenKind,
+        found: TokenKind,
+    },
+    VarRedeclared {
+        original_line: i32,
+        var_name: String,
+    },
+    VarUnknown {
+        var_name: String,
+    },
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -15,13 +25,19 @@ impl fmt::Display for DiagnosticKind {
         match self {
             Self::InvalidToken { lexeme } => {
                 write!(f, "Unexpected token in source file: '{lexeme}'")
-            },
+            }
             Self::UnexpectedToken { expected, found } => {
                 write!(f, "Expected token '{expected}', found '{found}'")
-            },
-            Self::VarRedeclared { original_line, var_name } => {
-                write!(f, "Variable '{var_name}' redeclared. (Orignally declared on line {original_line})")
-            },
+            }
+            Self::VarRedeclared {
+                original_line,
+                var_name,
+            } => {
+                write!(
+                    f,
+                    "Variable '{var_name}' redeclared. (Orignally declared on line {original_line})"
+                )
+            }
             Self::VarUnknown { var_name } => {
                 write!(f, "Unknown variable '{var_name}'")
             }
@@ -43,7 +59,7 @@ impl fmt::Display for Diagnostic {
 
 #[derive(Debug, Default)]
 pub struct Diagnostics {
-    diagnostics: Vec<Diagnostic>
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl Diagnostics {

@@ -1,6 +1,6 @@
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::tokens::{TokenKind, Token, TokenStream};
+use crate::tokens::{Token, TokenKind, TokenStream};
 
 fn is_identifier_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
@@ -25,6 +25,7 @@ pub struct Lexer<'ctx> {
     line: i32,
 }
 
+// TODO Intern strings on lexing
 impl<'ctx> Lexer<'ctx> {
     pub fn new(ctx: &'ctx Context) -> Lexer<'ctx> {
         Lexer {
@@ -95,13 +96,13 @@ impl<'ctx> Lexer<'ctx> {
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 x if x.is_numeric() => self.lex_literal(),
                 _ => {
-                    self.ctx.diags.borrow_mut().report(
-                        Diagnostic {
-                            line: self.line,
-                            kind: DiagnosticKind::InvalidToken { lexeme: c.to_string() }
-                        }
-                    );
-                    return None
+                    self.ctx.diags.borrow_mut().report(Diagnostic {
+                        line: self.line,
+                        kind: DiagnosticKind::InvalidToken {
+                            lexeme: c.to_string(),
+                        },
+                    });
+                    return None;
                 }
             },
         };

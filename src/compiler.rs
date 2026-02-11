@@ -1,12 +1,11 @@
-use crate::diagnostic::{Diagnostics, Diagnostic};
+use crate::diagnostic::{Diagnostic, Diagnostics};
 use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
 use std::cell::RefCell;
-use std::error::Error;
 
 pub struct Context {
     pub source: Source,
     pub symbols: RefCell<Symbols>,
-    pub diags: RefCell<Diagnostics>
+    pub diags: RefCell<Diagnostics>,
 }
 
 impl Context {
@@ -14,7 +13,7 @@ impl Context {
         Context {
             source: Source::new(source),
             symbols: RefCell::new(Symbols::default()),
-            diags: RefCell::new(Diagnostics::default())
+            diags: RefCell::new(Diagnostics::default()),
         }
     }
 }
@@ -30,25 +29,20 @@ impl Compiler {
         }
     }
 
+    // TODO perhaps this can get less repetative later
     pub fn compile(&mut self) -> Result<(), Vec<Diagnostic>> {
         let mut lexer = Lexer::new(&self.ctx);
-        
-        let token_stream = lexer.tokenize();   
+
+        let token_stream = lexer.tokenize();
         if self.ctx.diags.borrow().has_diagnostics() {
-            return Err(self.ctx.diags.borrow_mut().take_diagnostics())
+            return Err(self.ctx.diags.borrow_mut().take_diagnostics());
         }
 
-
         let mut parser = Parser::new(token_stream, &self.ctx);
-        let ast = match parser.parse() {
-            Ok(ast) => ast,
-            Err(errors) => {
-                return Err(errors
-                    .into_iter()
-                    .map(|e| Box::<dyn Error>::from(e))
-                    .collect());
-            }
-        };
+        let ast = parser.parse();
+        if self.ctx.diags.borrow().has_diagnostics() {
+            return Err(self.ctx.diags.borrow_mut().take_diagnostics());
+        }
 
         println!("{ast:?}");
 

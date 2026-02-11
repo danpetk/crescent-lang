@@ -1,2 +1,3 @@
-Intern strings on lex to remove symbol table allocations
-Pratt style parsing
+Intern strings on lexing
+Synchronization to allow for multiple parser errors being reported
+Improve compile function

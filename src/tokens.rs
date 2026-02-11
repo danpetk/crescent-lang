@@ -1,11 +1,13 @@
-use crate::diagnostic::ParserError;
+use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use std::fmt::{self};
 
-fn unexpected_token_error(actual: Token, expected: TokenKind) -> ParserError {
-    ParserError::UnexpectedToken {
+fn unexpected_token_error(actual: Token, expected: TokenKind) -> Diagnostic {
+    Diagnostic {
         line: actual.line,
-        expected,
-        found: actual.kind,
+        kind: DiagnosticKind::UnexpectedToken {
+            expected,
+            found: actual.kind,
+        },
     }
 }
 
@@ -132,7 +134,7 @@ impl TokenStream {
         token.clone() // clone is cheap here, plus the TokenStream "serves" tokens, so it should not give ref
     }
 
-    pub fn expect(&mut self, expected_kind: TokenKind) -> Result<Token, ParserError> {
+    pub fn expect(&mut self, expected_kind: TokenKind) -> Result<Token, Diagnostic> {
         let tok = self.advance();
         if tok.kind != expected_kind {
             return Err(unexpected_token_error(tok, expected_kind));

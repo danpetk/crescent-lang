@@ -1,5 +1,6 @@
 use crate::ast::{BinOpKind, Expr, Root, Stmt};
 use crate::compiler::Context;
+use crate::diagnostic::Diagnostic;
 use crate::tokens::{TokenKind, TokenStream};
 
 pub struct Parser<'ctx> {
@@ -15,18 +16,22 @@ impl<'ctx> Parser<'ctx> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Root, Vec<ParserError>> {
+    // TODO In the future, this will synchronize to report multiple errors
+    pub fn parse(&mut self) -> Root {
         let mut statements = vec![];
         while self.token_stream.any() {
             match self.parse_statement() {
                 Ok(stmt) => statements.push(stmt),
-                Err(err) => return Err(vec![err]),
+                Err(diagnostic) => {
+                    self.ctx.diags.borrow_mut().report(diagnostic);
+                    break;
+                }
             }
         }
-        Ok(Root { top: statements })
+        Root { top: statements }
     }
 
-    fn parse_statement(&mut self) -> Result<Stmt, ParserError> {
+    fn parse_statement(&mut self) -> Result<Stmt, Diagnostic> {
         let tok = self.token_stream.peek();
 
         let statement = match tok.kind {
@@ -42,7 +47,7 @@ impl<'ctx> Parser<'ctx> {
         Ok(statement)
     }
 
-    fn parse_block(&mut self) -> Result<Stmt, ParserError> {
+    fn parse_block(&mut self) -> Result<Stmt, Diagnostic> {
         self.ctx.symbols.borrow_mut().push_scope();
 
         let token = self.token_stream.expect(TokenKind::OpenCurly)?;
@@ -57,7 +62,7 @@ impl<'ctx> Parser<'ctx> {
         Ok(Stmt::block(statements, token))
     }
 
-    fn parse_if(&mut self) -> Result<Stmt, ParserError> {
+    fn parse_if(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::If)?;
         let cond = self.parse_expr()?;
         let do_if = self.parse_statement()?;
@@ -71,7 +76,7 @@ impl<'ctx> Parser<'ctx> {
         Ok(Stmt::if_else(cond, do_if, do_else, token))
     }
 
-    fn parse_while(&mut self) -> Result<Stmt, ParserError> {
+    fn parse_while(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::While)?;
         let cond = self.parse_expr()?;
         let statement = self.parse_statement()?;
@@ -79,7 +84,7 @@ impl<'ctx> Parser<'ctx> {
         Ok(Stmt::while_loop(cond, statement, token))
     }
 
-    fn parse_let(&mut self) -> Result<Stmt, ParserError> {
+    fn parse_let(&mut self) -> Result<Stmt, Diagnostic> {
         self.token_stream.expect(TokenKind::Let)?;
         let var_token = self.token_stream.expect(TokenKind::Identifier)?;
         self.token_stream.expect(TokenKind::Colon)?;
@@ -97,11 +102,11 @@ impl<'ctx> Parser<'ctx> {
         Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
     }
 
-    fn parse_expr(&mut self) -> Result<Expr, ParserError> {
+    fn parse_expr(&mut self) -> Result<Expr, Diagnostic> {
         Ok(self.parse_expr_recursive(None, 4)?)
     }
 
-    fn parse_expr_recursive(&mut self, lhs: Option<Expr>, prec: u32) -> Result<Expr, ParserError> {
+    fn parse_expr_recursive(&mut self, lhs: Option<Expr>, prec: u32) -> Result<Expr, Diagnostic> {
         if prec == 0 {
             return Ok(match lhs {
                 Some(expr) => expr,
@@ -133,7 +138,7 @@ impl<'ctx> Parser<'ctx> {
         Ok(lhs)
     }
 
-    fn parse_term(&mut self) -> Result<Expr, ParserError> {
+    fn parse_term(&mut self) -> Result<Expr, Diagnostic> {
         let token = self.token_stream.advance();
         match token.kind {
             TokenKind::Identifier => {

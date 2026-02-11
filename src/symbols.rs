@@ -9,12 +9,6 @@ pub struct VarInfo {
 #[derive(Debug, Clone, Copy)]
 pub struct Symbol(usize);
 
-impl Symbol {
-    pub fn gg() -> Self {
-        Symbol { 0: 0 }
-    }
-}
-
 #[derive(Default)]
 pub struct Symbols {
     scopes: Vec<HashMap<String, Symbol>>, // TODO: Change this to intered id when strings are interned

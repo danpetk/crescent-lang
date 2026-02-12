@@ -89,7 +89,13 @@ impl<'ctx> Lexer<'ctx> {
                     self.make_token(kind)
                 }
                 '+' => self.make_token(TokenKind::Plus),
-                '-' => self.make_token(TokenKind::Minus),
+                '-' => {
+                    if let Some(c) = self.peek_char() && c.is_numeric() {
+                        self.lex_literal()
+                    } else {
+                        self.make_token(TokenKind::Minus)
+                    }
+                }
                 '*' => self.make_token(TokenKind::Star),
                 '/' => self.make_token(TokenKind::Slash),
 

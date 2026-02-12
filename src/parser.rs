@@ -1,6 +1,6 @@
 use crate::ast::{BinOpKind, Expr, Root, Stmt};
 use crate::compiler::Context;
-use crate::diagnostic::Diagnostic;
+use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::{TokenKind, TokenStream};
 
 pub struct Parser<'ctx> {
@@ -146,9 +146,13 @@ impl<'ctx> Parser<'ctx> {
                 Ok(Expr::var(symbol, token))
             }
             TokenKind::Literal => {
-                let val: i32 = token.lexeme.parse().unwrap_or_else(|_| {
-                    todo!();
-                });
+                let val: i32 = token.lexeme.parse().map_err(|_| Diagnostic {
+                    line: token.line,
+                    kind: DiagnosticKind::NumLiteralTooLarge {
+                        literal: token.lexeme.to_owned(),
+                    },
+                })?;
+
                 Ok(Expr::lit(val, token))
             }
             _ => todo!(),

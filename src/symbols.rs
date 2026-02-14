@@ -2,7 +2,6 @@ use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::Token;
 use std::collections::HashMap;
 
-
 // May seem bare-bones or unnecessary now but its future proofing
 pub enum Type {
     Named(SymbolID),

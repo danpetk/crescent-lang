@@ -53,6 +53,15 @@ pub enum TokenKind {
     EOF,
 }
 
+impl TokenKind {
+    pub fn starts_expression(&self) -> bool {
+        // match self {
+        //     // TokenKind::Identifier | TokenKind::Literal | TokenKind::OpenParen | TokenKind::Minus | TokenKind::Bang
+        // }
+        true
+    }
+}
+
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let rep = match self {
@@ -81,7 +90,7 @@ impl fmt::Display for TokenKind {
 
             TokenKind::Return => "return",
             TokenKind::Break => "break",
-            TokenKind::Continue => "continue", 
+            TokenKind::Continue => "continue",
             TokenKind::Func => "func",
             TokenKind::If => "if",
             TokenKind::Else => "else",

@@ -1,8 +1,7 @@
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::Token;
 use std::collections::HashMap;
-use std::env::var;
-use std::ops::Deref;
+
 
 // May seem bare-bones or unnecessary now but its future proofing
 pub enum Type {
@@ -14,7 +13,7 @@ pub enum TypeDef {
 }
 
 pub struct VarInfo {
-    var_type: Type,
+    _var_type: Type,
 }
 
 pub enum SymbolKind {
@@ -73,19 +72,17 @@ impl Symbols {
             });
         }
 
+        let type_id = self.get_type_id(type_token)?;
+
         let symbol = self.add_symbol(
             &var_token.lexeme,
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
-                    var_type: Type::Named(5),
+                    _var_type: Type::Named(type_id),
                 }),
             },
         );
-
-        if type_token.lexeme != "i32" {
-            panic!("only i32 suppored rn")
-        }
 
         Ok(symbol)
     }
@@ -97,6 +94,18 @@ impl Symbols {
                 line: var_token.line,
                 kind: DiagnosticKind::VarUnknown {
                     var_name: var_token.lexeme.to_owned(),
+                },
+            }),
+        }
+    }
+
+    pub fn get_type_id(&self, type_token: &Token) -> Result<SymbolID, Diagnostic> {
+        match self.get_symbol(&type_token.lexeme) {
+            Some((id, info)) if matches!(info.kind, SymbolKind::Type(_)) => Ok(id),
+            _ => Err(Diagnostic {
+                line: type_token.line,
+                kind: DiagnosticKind::TypeUnknown {
+                    type_name: type_token.lexeme.to_owned(),
                 },
             }),
         }

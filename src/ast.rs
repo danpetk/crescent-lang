@@ -68,6 +68,10 @@ pub enum StmtKind {
     While(Box<Expr>, Box<Stmt>),
     ExprStmt(Box<Expr>),
     Block(Vec<Stmt>),
+    Return(Box<Expr>),
+    Break,
+    Continue,
+
 }
 
 #[derive(Debug)]
@@ -97,6 +101,29 @@ impl Stmt {
             token,
         }
     }
+
+    pub fn return_stmt(expr: Expr, token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::Return(Box::new(expr)),
+            token
+        }
+    }
+
+    pub fn continue_stmt(token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::Continue,
+            token
+        }
+    }
+
+    pub fn break_stmt(token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::Break,
+            token
+        }
+    }
+
+
 }
 
 impl From<Expr> for Stmt {

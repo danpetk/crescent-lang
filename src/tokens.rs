@@ -41,6 +41,8 @@ pub enum TokenKind {
 
     // Keywords
     Return,
+    Break,
+    Continue,
     Func,
     If,
     Else,
@@ -78,6 +80,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Literal => "literal",
 
             TokenKind::Return => "return",
+            TokenKind::Break => "break",
+            TokenKind::Continue => "continue", 
             TokenKind::Func => "func",
             TokenKind::If => "if",
             TokenKind::Else => "else",

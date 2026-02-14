@@ -12,7 +12,7 @@ impl Context {
     pub fn new(source: String) -> Context {
         Context {
             source: Source::new(source),
-            symbols: RefCell::new(Symbols::default()),
+            symbols: RefCell::new(Symbols::new()),
             diags: RefCell::new(Diagnostics::default()),
         }
     }

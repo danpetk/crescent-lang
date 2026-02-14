@@ -142,7 +142,7 @@ impl<'ctx> Parser<'ctx> {
         let token = self.token_stream.advance();
         match token.kind {
             TokenKind::Identifier => {
-                let symbol = self.ctx.symbols.borrow().get_local_var(&token)?;
+                let symbol = self.ctx.symbols.borrow().get_local_var_id(&token)?;
                 Ok(Expr::var(symbol, token))
             }
             TokenKind::Literal => {
@@ -152,8 +152,12 @@ impl<'ctx> Parser<'ctx> {
                         literal: token.lexeme.to_owned(),
                     },
                 })?;
-
                 Ok(Expr::lit(val, token))
+            }
+            TokenKind::OpenParen => {
+                let expr = self.parse_expr()?;
+                self.token_stream.expect(TokenKind::CloseParen)?;
+                Ok(expr)
             }
             _ => todo!(),
         }

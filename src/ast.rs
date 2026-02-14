@@ -1,4 +1,4 @@
-use crate::symbols::Symbol;
+use crate::symbols::SymbolID;
 use crate::tokens::Token;
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ pub enum UnOpKind {
 pub enum ExprKind {
     BinOp(BinOpKind, Box<Expr>, Box<Expr>),
     UnOp(UnOpKind, Box<Expr>),
-    Var(Symbol),
+    Var(SymbolID),
     Literal(i32),
     Dummy,
 }
@@ -39,7 +39,7 @@ pub struct Expr {
 }
 
 impl Expr {
-    pub fn var(symbol: Symbol, token: Token) -> Self {
+    pub fn var(symbol: SymbolID, token: Token) -> Self {
         Expr {
             kind: ExprKind::Var(symbol),
             token,

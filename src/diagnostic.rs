@@ -18,6 +18,9 @@ pub enum DiagnosticKind {
     VarUnknown {
         var_name: String,
     },
+    TypeUnknown {
+        type_name: String,
+    },
     NumLiteralTooLarge {
         literal: String,
     },
@@ -43,6 +46,9 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::VarUnknown { var_name } => {
                 write!(f, "Unknown variable '{var_name}'")
+            }
+            Self::TypeUnknown { type_name } => {
+                write!(f, "Unknown type '{type_name}'")
             }
             Self::NumLiteralTooLarge { literal } => {
                 write!(f, "Number literal {literal} too large")

@@ -1,4 +1,4 @@
-use crate::ast::{BinOpKind, Expr, Root, Stmt};
+use crate::ast::{BinOpKind, Expr, Root, Stmt, StmtKind, UnOpKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::{TokenKind, TokenStream};
@@ -45,6 +45,7 @@ impl<'ctx> Parser<'ctx> {
             TokenKind::Return => self.parse_return()?,
             TokenKind::Continue => self.parse_continue()?,
             TokenKind::Break => self.parse_break()?,
+            TokenKind::Semi => self.parse_empty()?,
             _ => self.parse_expr()?.into(), // No match so assume expr statement and let that find the error
         };
 
@@ -110,18 +111,23 @@ impl<'ctx> Parser<'ctx> {
     fn parse_return(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::Return)?;
         let expr = self.parse_expr()?;
-        
+
         Ok(Stmt::return_stmt(expr, token))
     }
 
     fn parse_continue(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::Continue)?;
-        Ok(Stmt::continue_stmt(token))
+        Ok(Stmt::trivial_stmt(StmtKind::Continue, token))
     }
 
     fn parse_break(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::Break)?;
-        Ok(Stmt::break_stmt(token))
+        Ok(Stmt::trivial_stmt(StmtKind::Break, token))
+    }
+
+    fn parse_empty(&mut self) -> Result<Stmt, Diagnostic> {
+        let token = self.token_stream.expect(TokenKind::Semi)?;
+        Ok(Stmt::trivial_stmt(StmtKind::Empty, token))
     }
 
     fn parse_expr(&mut self) -> Result<Expr, Diagnostic> {
@@ -180,6 +186,16 @@ impl<'ctx> Parser<'ctx> {
                 let expr = self.parse_expr()?;
                 self.token_stream.expect(TokenKind::CloseParen)?;
                 Ok(expr)
+            }
+            TokenKind::Bang => {
+                let token = self.token_stream.expect(TokenKind::Bang)?;
+                let expr = self.parse_expr()?;
+                Ok(Expr::unary_op(UnOpKind::Not, expr, token))
+            }
+            TokenKind::Minus => {
+                let token = self.token_stream.expect(TokenKind::Minus)?;
+                let expr = self.parse_expr()?;
+                Ok(Expr::unary_op(UnOpKind::Neg, expr, token))
             }
             _ => todo!(),
         }

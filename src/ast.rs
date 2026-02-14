@@ -59,6 +59,13 @@ impl Expr {
             token,
         }
     }
+
+    pub fn unary_op(kind: UnOpKind, expr: Expr, token: Token) -> Self {
+        Expr {
+            kind: ExprKind::UnOp(kind, Box::new(expr)),
+            token,
+        }
+    }
 }
 
 // Different kinds of statements recognized in the language
@@ -72,6 +79,7 @@ pub enum StmtKind {
     Break,
     Continue,
 
+    Empty,
 }
 
 #[derive(Debug)]
@@ -105,25 +113,13 @@ impl Stmt {
     pub fn return_stmt(expr: Expr, token: Token) -> Self {
         Stmt {
             kind: StmtKind::Return(Box::new(expr)),
-            token
+            token,
         }
     }
 
-    pub fn continue_stmt(token: Token) -> Self {
-        Stmt {
-            kind: StmtKind::Continue,
-            token
-        }
+    pub fn trivial_stmt(kind: StmtKind, token: Token) -> Self {
+        Stmt { kind, token }
     }
-
-    pub fn break_stmt(token: Token) -> Self {
-        Stmt {
-            kind: StmtKind::Break,
-            token
-        }
-    }
-
-
 }
 
 impl From<Expr> for Stmt {

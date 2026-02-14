@@ -35,11 +35,16 @@ impl<'ctx> Parser<'ctx> {
         let tok = self.token_stream.peek();
 
         let statement = match tok.kind {
+            // Tokens without semicolons
             TokenKind::OpenCurly => return Ok(self.parse_block()?),
             TokenKind::If => return Ok(self.parse_if()?),
             TokenKind::While => return Ok(self.parse_while()?),
 
+            // Tokens with semicolons
             TokenKind::Let => self.parse_let()?,
+            TokenKind::Return => self.parse_return()?,
+            TokenKind::Continue => self.parse_continue()?,
+            TokenKind::Break => self.parse_break()?,
             _ => self.parse_expr()?.into(), // No match so assume expr statement and let that find the error
         };
 
@@ -100,6 +105,23 @@ impl<'ctx> Parser<'ctx> {
         let lhs = Expr::var(symbol, var_token);
 
         Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
+    }
+
+    fn parse_return(&mut self) -> Result<Stmt, Diagnostic> {
+        let token = self.token_stream.expect(TokenKind::Return)?;
+        let expr = self.parse_expr()?;
+        
+        Ok(Stmt::return_stmt(expr, token))
+    }
+
+    fn parse_continue(&mut self) -> Result<Stmt, Diagnostic> {
+        let token = self.token_stream.expect(TokenKind::Continue)?;
+        Ok(Stmt::continue_stmt(token))
+    }
+
+    fn parse_break(&mut self) -> Result<Stmt, Diagnostic> {
+        let token = self.token_stream.expect(TokenKind::Break)?;
+        Ok(Stmt::break_stmt(token))
     }
 
     fn parse_expr(&mut self) -> Result<Expr, Diagnostic> {
@@ -171,6 +193,7 @@ enum AssocKind {
     None,
 }
 
+// </3
 fn get_op_info(kind: TokenKind) -> Option<(u32, AssocKind, BinOpKind)> {
     Some(match kind {
         TokenKind::Eq => (4, AssocKind::Right, BinOpKind::Assign),

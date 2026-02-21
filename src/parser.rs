@@ -197,7 +197,10 @@ impl<'ctx> Parser<'ctx> {
                 let expr = self.parse_expr()?;
                 Ok(Expr::unary_op(UnOpKind::Neg, expr, token))
             }
-            _ => todo!(),
+            _ => Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::UnexpectedTokenInExpression { found: token.kind },
+            }),
         }
     }
 }

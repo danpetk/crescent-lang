@@ -24,6 +24,9 @@ pub enum DiagnosticKind {
     NumLiteralTooLarge {
         literal: String,
     },
+    UnexpectedTokenInExpression {
+        found: TokenKind,
+    },
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -52,6 +55,9 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::NumLiteralTooLarge { literal } => {
                 write!(f, "Number literal {literal} too large")
+            }
+            Self::UnexpectedTokenInExpression { found } => {
+                write!(f, "Unexpected token '{found}' found within expression")
             }
         }
     }

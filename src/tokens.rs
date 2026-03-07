@@ -101,6 +101,7 @@ impl fmt::Display for TokenKind {
         write!(f, "{rep}")
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct SourceSpan {
     pub low: usize,

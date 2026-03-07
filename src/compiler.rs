@@ -32,14 +32,15 @@ impl Compiler {
     // TODO perhaps this can get less repetative later
     pub fn compile(&mut self) -> Result<(), Vec<Diagnostic>> {
         let mut lexer = Lexer::new(&self.ctx);
-
         let token_stream = lexer.tokenize();
+
         if self.ctx.diags.borrow().has_diagnostics() {
             return Err(self.ctx.diags.borrow_mut().take_diagnostics());
         }
 
         let mut parser = Parser::new(token_stream, &self.ctx);
         let ast = parser.parse();
+
         if self.ctx.diags.borrow().has_diagnostics() {
             return Err(self.ctx.diags.borrow_mut().take_diagnostics());
         }

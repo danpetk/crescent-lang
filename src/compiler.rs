@@ -1,4 +1,5 @@
 use crate::diagnostic::{Diagnostic, Diagnostics};
+use crate::semantic::SemanticAnalyzer;
 use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
 use std::cell::RefCell;
 
@@ -39,7 +40,14 @@ impl Compiler {
         }
 
         let mut parser = Parser::new(token_stream, &self.ctx);
-        let ast = parser.parse();
+        let mut ast = parser.parse();
+
+        if self.ctx.diags.borrow().has_diagnostics() {
+            return Err(self.ctx.diags.borrow_mut().take_diagnostics());
+        }
+
+        let mut semantics = SemanticAnalyzer::new(&self.ctx);
+        semantics.analyze(&mut ast);
 
         if self.ctx.diags.borrow().has_diagnostics() {
             return Err(self.ctx.diags.borrow_mut().take_diagnostics());

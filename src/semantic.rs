@@ -6,13 +6,15 @@ pub struct SemanticAnalyzer<'ctx> {
 }
 
 impl<'ctx> SemanticAnalyzer<'ctx> {
-    pub fn analyze(&self, ast: &mut Root) {
+    pub fn new(ctx: &'ctx Context) -> Self {
+        SemanticAnalyzer { _ctx: ctx }
+    }
+
+    pub fn analyze(&mut self, ast: &mut Root) {
         for stmt in &mut ast.top {
             self.analyze_statement(stmt);
         }
     }
 
-    fn analyze_statement(&self, _stmt: &mut Stmt) {
-        todo!()
-    }
+    fn analyze_statement(&mut self, _stmt: &mut Stmt) {}
 }

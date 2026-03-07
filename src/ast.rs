@@ -29,7 +29,6 @@ pub enum ExprKind {
     UnOp(UnOpKind, Box<Expr>),
     Var(SymbolID),
     Literal(i32),
-    Dummy,
 }
 
 #[derive(Debug)]
@@ -78,7 +77,6 @@ pub enum StmtKind {
     Return(Box<Expr>),
     Break,
     Continue,
-
     Empty,
 }
 

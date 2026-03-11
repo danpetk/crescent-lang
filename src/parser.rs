@@ -117,12 +117,12 @@ impl<'ctx> Parser<'ctx> {
 
     fn parse_continue(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::Continue)?;
-        Ok(Stmt::trivial_stmt(StmtKind::Continue, token))
+        Ok(Stmt::continue_stmt(token))
     }
 
     fn parse_break(&mut self) -> Result<Stmt, Diagnostic> {
         let token = self.token_stream.expect(TokenKind::Break)?;
-        Ok(Stmt::trivial_stmt(StmtKind::Break, token))
+        Ok(Stmt::break_stmt(token))
     }
 
     fn parse_empty(&mut self) -> Result<Stmt, Diagnostic> {

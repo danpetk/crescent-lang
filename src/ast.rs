@@ -1,4 +1,4 @@
-use crate::id::SymbolID;
+use crate::id::{LoopID, SymbolID};
 use crate::tokens::Token;
 
 #[derive(Debug)]
@@ -71,12 +71,12 @@ impl Expr {
 #[derive(Debug)]
 pub enum StmtKind {
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
-    While(Box<Expr>, Box<Stmt>),
+    While(LoopID, Box<Expr>, Box<Stmt>),
     ExprStmt(Box<Expr>),
     Block(Vec<Stmt>),
     Return(Box<Expr>),
-    Break,
-    Continue,
+    Break(LoopID),
+    Continue(LoopID),
     Empty,
 }
 
@@ -103,7 +103,7 @@ impl Stmt {
 
     pub fn while_loop(cond: Expr, statement: Stmt, token: Token) -> Self {
         Stmt {
-            kind: StmtKind::While(Box::new(cond), Box::new(statement)),
+            kind: StmtKind::While(LoopID::dummy(), Box::new(cond), Box::new(statement)),
             token,
         }
     }
@@ -117,6 +117,20 @@ impl Stmt {
 
     pub fn trivial_stmt(kind: StmtKind, token: Token) -> Self {
         Stmt { kind, token }
+    }
+
+    pub fn continue_stmt(token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::Continue(LoopID::dummy()),
+            token,
+        }
+    }
+
+    pub fn break_stmt(token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::Break(LoopID::dummy()),
+            token,
+        }
     }
 }
 

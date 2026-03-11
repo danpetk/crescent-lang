@@ -16,7 +16,7 @@ impl<'ctx> Parser<'ctx> {
         }
     }
 
-    // TODO In the future, this will synchronize to report multiple errors
+    // TODO: In the future, this will synchronize to report multiple errors
     pub fn parse(&mut self) -> Root {
         let mut statements = vec![];
         while self.token_stream.any() {

@@ -1,7 +1,8 @@
 use crate::ast::{Expr, Root, Stmt, StmtKind};
 use crate::compiler::Context;
-use crate::diagnostic::Diagnostic;
+use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::id::LoopID;
+use crate::tokens::Token;
 
 pub struct SemanticAnalyzer<'ctx> {
     ctx: &'ctx Context,
@@ -33,6 +34,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         }
     }
 
+    // TODO: Restructure this to avoid token cloning
+    // Somehow have to pass the node itself in and evade the borrow checker
     fn analyze_statement(&mut self, stmt: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut stmt.kind {
             StmtKind::Empty => {}
@@ -40,6 +43,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::ExprStmt(expr) => self.analyze_expr(expr)?,
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
+            StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
+            StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
             _ => todo!(),
         }
 
@@ -79,7 +84,33 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         self.analyze_expr(expr)?;
         self.analyze_statement(stmt)?;
 
+        // TODO: Be very careful here, right now there is no problem because on error we fully stop
+        // compiling but if we resync, an error above and this will never pop
         self.loop_id_stack.pop();
+        Ok(())
+    }
+
+    fn analyze_continue(&mut self, id: &mut LoopID, token: Token) -> Result<(), Diagnostic> {
+        if let Some(current_id) = self.loop_id_stack.last() {
+            *id = *current_id
+        } else {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::ContinueOutsideLoop,
+            });
+        }
+        Ok(())
+    }
+
+    fn analyze_break(&mut self, id: &mut LoopID, token: Token) -> Result<(), Diagnostic> {
+        if let Some(current_id) = self.loop_id_stack.last() {
+            *id = *current_id
+        } else {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::ContinueOutsideLoop,
+            });
+        }
         Ok(())
     }
 

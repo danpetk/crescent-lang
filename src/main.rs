@@ -1,4 +1,4 @@
-use lang::Compiler;
+use crescent_lang::Compiler;
 use std::fs;
 use std::process::exit;
 

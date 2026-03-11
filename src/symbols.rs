@@ -1,4 +1,5 @@
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
+use crate::id::SymbolID;
 use crate::tokens::Token;
 use std::collections::HashMap;
 
@@ -24,9 +25,6 @@ pub struct SymbolInfo {
     line: i32,
     kind: SymbolKind,
 }
-
-#[derive(Debug, Clone, Copy)]
-pub struct SymbolID(usize);
 
 pub struct Symbols {
     scopes: Vec<HashMap<String, SymbolID>>, // TODO: Change this to intered id when strings are interned

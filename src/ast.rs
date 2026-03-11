@@ -1,4 +1,4 @@
-use crate::symbols::SymbolID;
+use crate::id::SymbolID;
 use crate::tokens::Token;
 
 #[derive(Debug)]

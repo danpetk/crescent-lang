@@ -25,7 +25,7 @@ pub struct Lexer<'ctx> {
     line: i32,
 }
 
-// TODO Intern strings on lexing
+// TODO: Intern strings on lexing
 impl<'ctx> Lexer<'ctx> {
     pub fn new(ctx: &'ctx Context) -> Lexer<'ctx> {
         Lexer {

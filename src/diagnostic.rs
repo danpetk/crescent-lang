@@ -27,6 +27,8 @@ pub enum DiagnosticKind {
     UnexpectedTokenInExpression {
         found: TokenKind,
     },
+    ContinueOutsideLoop,
+    BreakOutsideLoop,
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -58,6 +60,12 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::UnexpectedTokenInExpression { found } => {
                 write!(f, "Unexpected token '{found}' found within expression")
+            }
+            Self::ContinueOutsideLoop => {
+                write!(f, "'continue' statement oustide of loop")
+            }
+            Self::BreakOutsideLoop => {
+                write!(f, "'break' statement oustide of loop")
             }
         }
     }

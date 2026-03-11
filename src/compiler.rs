@@ -30,7 +30,7 @@ impl Compiler {
         }
     }
 
-    // TODO perhaps this can get less repetative later
+    // TODO: perhaps this can get less repetative later
     pub fn compile(&mut self) -> Result<(), Vec<Diagnostic>> {
         let mut lexer = Lexer::new(&self.ctx);
         let token_stream = lexer.tokenize();

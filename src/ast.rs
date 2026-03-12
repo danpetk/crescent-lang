@@ -145,6 +145,6 @@ impl From<Expr> for Stmt {
 }
 
 #[derive(Debug)]
-pub struct Root {
+pub struct Program {
     pub top: Vec<Stmt>,
 }

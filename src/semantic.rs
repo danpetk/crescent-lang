@@ -1,4 +1,4 @@
-use crate::ast::{Expr, Root, Stmt, StmtKind};
+use crate::ast::{Expr, Program, Stmt, StmtKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::id::LoopID;
@@ -22,7 +22,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     }
 
     // In the future, we could syncronize to catch multiple errors
-    pub fn analyze(&mut self, ast: &mut Root) {
+    pub fn analyze(&mut self, ast: &mut Program) {
         for stmt in &mut ast.top {
             match self.analyze_statement(stmt) {
                 Ok(_) => {}
@@ -35,7 +35,9 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     }
 
     // TODO: Restructure this to avoid token cloning
-    // Somehow have to pass the node itself in and evade the borrow checker
+    // instead of passing the data in the matched enum
+    // we should match and then pass the whole node into the function ideally
+    // I need a way to do this with the borrow checker
     fn analyze_statement(&mut self, stmt: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut stmt.kind {
             StmtKind::Empty => {}
@@ -45,7 +47,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
-            _ => todo!(),
+            StmtKind::Return(_expr) => todo!(),
         }
 
         Ok(())

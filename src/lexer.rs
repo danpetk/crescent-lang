@@ -14,6 +14,8 @@ fn get_keyword(identifier: &str) -> Option<TokenKind> {
         "else" => Some(TokenKind::Else),
         "while" => Some(TokenKind::While),
         "let" => Some(TokenKind::Let),
+        "continue" => Some(TokenKind::Continue),
+        "break" => Some(TokenKind::Break),
         _ => None,
     }
 }

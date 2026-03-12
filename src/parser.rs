@@ -1,4 +1,4 @@
-use crate::ast::{BinOpKind, Expr, Root, Stmt, StmtKind, UnOpKind};
+use crate::ast::{BinOpKind, Expr, Program, Stmt, StmtKind, UnOpKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::{TokenKind, TokenStream};
@@ -17,7 +17,7 @@ impl<'ctx> Parser<'ctx> {
     }
 
     // TODO: In the future, this will synchronize to report multiple errors
-    pub fn parse(&mut self) -> Root {
+    pub fn parse(&mut self) -> Program {
         let mut statements = vec![];
         while self.token_stream.any() {
             match self.parse_statement() {
@@ -28,7 +28,7 @@ impl<'ctx> Parser<'ctx> {
                 }
             }
         }
-        Root { top: statements }
+        Program { top: statements }
     }
 
     fn parse_statement(&mut self) -> Result<Stmt, Diagnostic> {

@@ -28,14 +28,14 @@ pub struct SymbolInfo {
 
 pub struct Symbols {
     scopes: Vec<HashMap<String, SymbolID>>, // TODO: Change this to intered id when strings are interned
-    variables: Vec<SymbolInfo>,
+    symbols: Vec<SymbolInfo>,
 }
 
 impl Symbols {
     pub fn new() -> Self {
         let mut symbols = Self {
             scopes: vec![],
-            variables: vec![],
+            symbols: vec![],
         };
 
         symbols.push_scope();
@@ -63,7 +63,7 @@ impl Symbols {
             return Err(Diagnostic {
                 line: var_token.line,
                 kind: DiagnosticKind::VarRedeclared {
-                    original_line: self.variables[sym.0].line,
+                    original_line: self.symbols[sym.0].line,
                     var_name: var_token.lexeme.to_owned(),
                 },
             });
@@ -126,18 +126,18 @@ impl Symbols {
 
     fn get_symbol(&self, name: &str) -> Option<(SymbolID, &SymbolInfo)> {
         let symbol = self.get_symbol_id(name)?;
-        Some((symbol, &self.variables[symbol.0]))
+        Some((symbol, &self.symbols[symbol.0]))
     }
 
     fn add_symbol(&mut self, name: &str, info: SymbolInfo) -> SymbolID {
         let symbol = self.make_symbol_id();
         self.get_current_scope_mut().insert(name.to_owned(), symbol);
-        self.variables.push(info);
+        self.symbols.push(info);
         symbol
     }
 
     fn make_symbol_id(&self) -> SymbolID {
-        SymbolID(self.variables.len())
+        SymbolID(self.symbols.len())
     }
 
     fn register_primative(&mut self, name: &str) {
@@ -149,7 +149,7 @@ impl Symbols {
         }
 
         current_scope.insert(name.to_owned(), symbol);
-        self.variables.push(SymbolInfo {
+        self.symbols.push(SymbolInfo {
             line: -1,
             kind: SymbolKind::Type(TypeDef::Primative),
         });

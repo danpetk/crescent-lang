@@ -64,7 +64,7 @@ impl<'ctx> Lexer<'ctx> {
         let token = match self.advance_char() {
             None => Token {
                 kind: TokenKind::EOF,
-                lexeme: "".to_string(),
+                lexeme: self.ctx.interner.borrow_mut().intern(""),
                 line: self.line,
             },
             Some(c) => match c {
@@ -188,7 +188,7 @@ impl<'ctx> Lexer<'ctx> {
     fn make_token(&self, kind: TokenKind) -> Token {
         Token {
             kind,
-            lexeme: self.current_lexeme().to_string(),
+            lexeme: self.ctx.interner.borrow_mut().intern(self.current_lexeme()),
             // span: SourceSpan {
             //     low: self.start,
             //     high: self.position

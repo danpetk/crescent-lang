@@ -1,7 +1,10 @@
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::id::SymbolID;
+use crate::interner::InternID;
 use crate::tokens::Token;
 use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy)]
+pub struct SymbolID(pub usize);
 
 // May seem bare-bones or unnecessary now but its future proofing
 pub enum Type {
@@ -27,7 +30,7 @@ pub struct SymbolInfo {
 }
 
 pub struct Symbols {
-    scopes: Vec<HashMap<String, SymbolID>>, // TODO: Change this to intered id when strings are interned
+    scopes: Vec<HashMap<InternID, SymbolID>>, // TODO: Change this to intered id when strings are interned
     symbols: Vec<SymbolInfo>,
 }
 
@@ -108,11 +111,11 @@ impl Symbols {
         }
     }
 
-    fn get_current_scope_mut(&mut self) -> &mut HashMap<String, SymbolID> {
+    fn get_current_scope_mut(&mut self) -> &mut HashMap<InternID, SymbolID> {
         self.scopes.last_mut().expect("global scope must exist")
     }
 
-    fn get_current_scope(&self) -> &HashMap<String, SymbolID> {
+    fn get_current_scope(&self) -> &HashMap<InternID, SymbolID> {
         self.scopes.last().expect("global scope must exist")
     }
 

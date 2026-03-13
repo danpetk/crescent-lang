@@ -1,5 +1,5 @@
-#[derive(Debug, Clone, Copy)]
-pub struct SymbolID(pub usize);
+// NOTE: Keeping inner types with pub can be risky but we do it because
+// its not that big of a deall
 
 #[derive(Debug, Clone, Copy)]
 pub struct LoopID(pub usize);

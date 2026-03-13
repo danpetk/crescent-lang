@@ -1,4 +1,5 @@
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
+use crate::interner::InternID;
 use std::fmt::{self};
 
 fn unexpected_token_error(actual: Token, expected: TokenKind) -> Diagnostic {
@@ -11,7 +12,7 @@ fn unexpected_token_error(actual: Token, expected: TokenKind) -> Diagnostic {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenKind {
     // Single Char
     Semi,
@@ -114,14 +115,12 @@ impl SourceSpan {
     }
 }
 
-// Tokens holding lexemes as owned strings is something I am not proud of
-// since it duplicates the source string and is not memory optimal,
-// but this lets me iterate much quicker on the other parts of the code.
-// I can change this later to make it more performant
-#[derive(Debug, Clone)]
+// NOTE: Storing lexemes for every token is unneccessary (i.e '+' token is the same lexeme every
+// time), but i do it this way for simplicity
+#[derive(Debug, Clone, Copy)]
 pub struct Token {
     pub kind: TokenKind,
-    pub lexeme: String,
+    pub lexeme: InternID,
     // pub span: SourceSpan,
     pub line: i32,
 }
@@ -145,7 +144,7 @@ impl TokenStream {
         if token.kind != TokenKind::EOF {
             self.pos += 1;
         }
-        token.clone() // clone is cheap here, plus the TokenStream "serves" tokens, so it should not give ref
+        *token // clone is cheap here, plus the TokenStream "serves" tokens, so it should not give ref
     }
 
     pub fn expect(&mut self, expected_kind: TokenKind) -> Result<Token, Diagnostic> {
@@ -164,10 +163,10 @@ impl TokenStream {
     }
 
     pub fn peek(&self) -> Token {
-        self.tokens
+        *self
+            .tokens
             .get(self.pos)
             .expect("advance should not allow pos to be out of bounds")
-            .clone()
     }
 
     pub fn any(&self) -> bool {

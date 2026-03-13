@@ -1,4 +1,5 @@
-use crate::id::{LoopID, SymbolID};
+use crate::id::LoopID;
+use crate::symbols::SymbolID;
 use crate::tokens::Token;
 
 #[derive(Debug)]
@@ -136,7 +137,7 @@ impl Stmt {
 
 impl From<Expr> for Stmt {
     fn from(expr: Expr) -> Self {
-        let token = expr.token.clone();
+        let token = expr.token;
         Stmt {
             kind: StmtKind::ExprStmt(Box::new(expr)),
             token,

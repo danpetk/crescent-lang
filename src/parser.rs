@@ -174,10 +174,12 @@ impl<'ctx> Parser<'ctx> {
                 Ok(Expr::var(symbol, token))
             }
             TokenKind::Literal => {
-                let val: i32 = token.lexeme.parse().map_err(|_| Diagnostic {
+                let interner = self.ctx.interner.borrow();
+                let lexeme = interner.resolve(token.lexeme);
+                let val: i32 = lexeme.parse().map_err(|_| Diagnostic {
                     line: token.line,
                     kind: DiagnosticKind::NumLiteralTooLarge {
-                        literal: token.lexeme.to_owned(),
+                        literal: lexeme.to_owned(),
                     },
                 })?;
                 Ok(Expr::lit(val, token))

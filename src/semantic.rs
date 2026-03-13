@@ -34,7 +34,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         }
     }
 
-    // TODO: Restructure this to avoid token cloning
+    // TODO: Restructure this to avoid token passing
     // instead of passing the data in the matched enum
     // we should match and then pass the whole node into the function ideally
     // I need a way to do this with the borrow checker
@@ -45,8 +45,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::ExprStmt(expr) => self.analyze_expr(expr)?,
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
-            StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
-            StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
+            StmtKind::Continue(id) => self.analyze_continue(id, stmt.token)?,
+            StmtKind::Break(id) => self.analyze_break(id, stmt.token)?,
             StmtKind::Return(_expr) => todo!(),
         }
 

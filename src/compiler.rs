@@ -1,10 +1,16 @@
 use crate::diagnostic::{Diagnostic, Diagnostics};
+use crate::interner::Interner;
+use crate::lexer::Lexer;
+use crate::parser::Parser;
 use crate::semantic::SemanticAnalyzer;
-use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
+use crate::source::Source;
+use crate::symbols::Symbols;
+
 use std::cell::RefCell;
 
 pub struct Context {
     pub source: Source,
+    pub interner: RefCell<Interner>,
     pub symbols: RefCell<Symbols>,
     pub diags: RefCell<Diagnostics>,
 }
@@ -13,6 +19,7 @@ impl Context {
     pub fn new(source: String) -> Context {
         Context {
             source: Source::new(source),
+            interner: RefCell::new(Interner::default()),
             symbols: RefCell::new(Symbols::new()),
             diags: RefCell::new(Diagnostics::default()),
         }

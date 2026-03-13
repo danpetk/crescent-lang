@@ -53,7 +53,7 @@ impl Compiler {
             return Err(self.ctx.diags.borrow_mut().take_diagnostics());
         }
 
-        println!("{ast:?}");
+        println!("{ast:#?}");
 
         Ok(())
     }

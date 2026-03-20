@@ -1,4 +1,4 @@
-use crate::ast::{BinOpKind, Expr, Program, Stmt, StmtKind, UnOpKind};
+use crate::ast::{BinOpKind, Expr, ParsedType, Program, Stmt, StmtKind, UnOpKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::tokens::{TokenKind, TokenStream};
@@ -54,16 +54,12 @@ impl<'ctx> Parser<'ctx> {
     }
 
     fn parse_block(&mut self) -> Result<Stmt, Diagnostic> {
-        self.ctx.symbols.borrow_mut().push_scope();
-
         let token = self.token_stream.expect(TokenKind::OpenCurly)?;
         let mut statements = vec![];
         while self.token_stream.any() && self.token_stream.peek().kind != TokenKind::CloseCurly {
             statements.push(self.parse_statement()?);
         }
         self.token_stream.expect(TokenKind::CloseCurly)?;
-
-        self.ctx.symbols.borrow_mut().pop_scope();
 
         Ok(Stmt::block(statements, token))
     }
@@ -95,17 +91,14 @@ impl<'ctx> Parser<'ctx> {
         let var_token = self.token_stream.expect(TokenKind::Identifier)?;
         self.token_stream.expect(TokenKind::Colon)?;
         let type_token = self.token_stream.expect(TokenKind::Identifier)?;
-        let eq_token = self.token_stream.expect(TokenKind::Eq)?;
-
+        self.token_stream.expect(TokenKind::Eq)?;
         let rhs = self.parse_expr()?;
-        let symbol = self
-            .ctx
-            .symbols
-            .borrow_mut()
-            .add_local_var(&var_token, &type_token)?;
-        let lhs = Expr::var(symbol, var_token);
 
-        Ok(Expr::binary_op(BinOpKind::Assign, lhs, rhs, eq_token).into())
+        Ok(Stmt::var_decl(
+            ParsedType::Named(type_token),
+            rhs,
+            var_token,
+        ))
     }
 
     fn parse_return(&mut self) -> Result<Stmt, Diagnostic> {
@@ -169,10 +162,7 @@ impl<'ctx> Parser<'ctx> {
     fn parse_term(&mut self) -> Result<Expr, Diagnostic> {
         let token = self.token_stream.advance();
         match token.kind {
-            TokenKind::Identifier => {
-                let symbol = self.ctx.symbols.borrow().get_local_var_id(&token)?;
-                Ok(Expr::var(symbol, token))
-            }
+            TokenKind::Identifier => Ok(Expr::var(token)),
             TokenKind::Literal => {
                 let val: i32 = token.lexeme.parse().map_err(|_| Diagnostic {
                     line: token.line,

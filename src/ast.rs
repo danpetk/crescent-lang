@@ -1,5 +1,9 @@
-use crate::id::{LoopID, SymbolID};
+use crate::id::LoopID;
+use crate::symbols::GenericType;
+use crate::symbols::SymbolID;
 use crate::tokens::Token;
+
+pub type ParsedType = GenericType<Token>;
 
 #[derive(Debug)]
 pub enum BinOpKind {
@@ -27,7 +31,7 @@ pub enum UnOpKind {
 pub enum ExprKind {
     BinOp(BinOpKind, Box<Expr>, Box<Expr>),
     UnOp(UnOpKind, Box<Expr>),
-    Var(SymbolID),
+    Var(Option<SymbolID>),
     Literal(i32),
 }
 
@@ -38,9 +42,9 @@ pub struct Expr {
 }
 
 impl Expr {
-    pub fn var(symbol: SymbolID, token: Token) -> Self {
+    pub fn var(token: Token) -> Self {
         Expr {
-            kind: ExprKind::Var(symbol),
+            kind: ExprKind::Var(None),
             token,
         }
     }
@@ -70,13 +74,14 @@ impl Expr {
 // Different kinds of statements recognized in the language
 #[derive(Debug)]
 pub enum StmtKind {
+    VarDecl(ParsedType, Box<Expr>),
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
-    While(LoopID, Box<Expr>, Box<Stmt>),
+    While(Option<LoopID>, Box<Expr>, Box<Stmt>),
     ExprStmt(Box<Expr>),
     Block(Vec<Stmt>),
     Return(Box<Expr>),
-    Break(LoopID),
-    Continue(LoopID),
+    Break(Option<LoopID>),
+    Continue(Option<LoopID>),
     Empty,
 }
 
@@ -94,6 +99,13 @@ impl Stmt {
         }
     }
 
+    pub fn var_decl(ty: ParsedType, expr: Expr, token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::VarDecl(ty, Box::new(expr)),
+            token,
+        }
+    }
+
     pub fn if_else(cond: Expr, do_if: Stmt, do_else: Option<Stmt>, token: Token) -> Self {
         Stmt {
             kind: StmtKind::If(Box::new(cond), Box::new(do_if), do_else.map(Box::new)),
@@ -103,7 +115,7 @@ impl Stmt {
 
     pub fn while_loop(cond: Expr, statement: Stmt, token: Token) -> Self {
         Stmt {
-            kind: StmtKind::While(LoopID::dummy(), Box::new(cond), Box::new(statement)),
+            kind: StmtKind::While(None, Box::new(cond), Box::new(statement)),
             token,
         }
     }
@@ -121,14 +133,14 @@ impl Stmt {
 
     pub fn continue_stmt(token: Token) -> Self {
         Stmt {
-            kind: StmtKind::Continue(LoopID::dummy()),
+            kind: StmtKind::Continue(None),
             token,
         }
     }
 
     pub fn break_stmt(token: Token) -> Self {
         Stmt {
-            kind: StmtKind::Break(LoopID::dummy()),
+            kind: StmtKind::Break(None),
             token,
         }
     }

@@ -1,24 +1,29 @@
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::id::SymbolID;
 use crate::tokens::Token;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Copy)]
+pub struct SymbolID(pub usize);
+
 // May seem bare-bones or unnecessary now but its future proofing
-pub enum Type {
-    Named(SymbolID),
+#[derive(Debug, Clone)]
+pub enum GenericType<T> {
+    Named(T),
 }
 
-pub enum TypeDef {
+type ResolvedType = GenericType<SymbolID>;
+
+pub enum TypeDefInfo {
     Primative,
 }
 
 pub struct VarInfo {
-    _var_type: Type,
+    _var_type: ResolvedType,
 }
 
 pub enum SymbolKind {
     Var(VarInfo),
-    Type(TypeDef),
+    Type(TypeDefInfo),
 }
 
 pub struct SymbolInfo {
@@ -76,7 +81,7 @@ impl Symbols {
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
-                    _var_type: Type::Named(type_id),
+                    _var_type: ResolvedType::Named(type_id),
                 }),
             },
         );
@@ -151,7 +156,7 @@ impl Symbols {
         current_scope.insert(name.to_owned(), symbol);
         self.symbols.push(SymbolInfo {
             line: -1,
-            kind: SymbolKind::Type(TypeDef::Primative),
+            kind: SymbolKind::Type(TypeDefInfo::Primative),
         });
     }
 }

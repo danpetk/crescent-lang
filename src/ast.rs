@@ -1,4 +1,4 @@
-use crate::id::LoopID;
+use crate::semantic::LoopID;
 use crate::symbols::GenericType;
 use crate::symbols::SymbolID;
 use crate::tokens::Token;

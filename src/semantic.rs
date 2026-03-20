@@ -1,9 +1,19 @@
 use crate::ast::{BinOpKind, Expr, ExprKind, ParsedType, Program, Stmt, StmtKind, UnOpKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::id::LoopID;
 use crate::symbols::SymbolID;
 use crate::tokens::Token;
+
+#[derive(Debug, Clone, Copy)]
+pub struct LoopID(usize);
+
+impl LoopID {
+    pub fn next(&mut self) -> Self {
+        let current = *self;
+        self.0 += 1;
+        current
+    }
+}
 
 pub struct SemanticAnalyzer<'ctx> {
     ctx: &'ctx Context,

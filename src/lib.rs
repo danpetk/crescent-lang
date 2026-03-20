@@ -1,7 +1,6 @@
 pub mod ast;
 pub mod compiler;
 pub mod diagnostic;
-pub mod id;
 pub mod lexer;
 pub mod parser;
 pub mod semantic;

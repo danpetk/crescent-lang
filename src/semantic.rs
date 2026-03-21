@@ -105,11 +105,10 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     ) -> Result<(), Diagnostic> {
         // TODO: When we add more types, return to this to fix code
         self.analyze_expr(expr)?;
-        let ParsedType::Named(type_token) = ty;
         self.ctx
             .symbols
             .borrow_mut()
-            .add_local_var(&var_token, &type_token)?;
+            .add_local_var(&var_token, &ty)?;
         Ok(())
     }
 
@@ -124,12 +123,11 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
 
         self.ctx.symbols.borrow_mut().push_scope();
         for param in params {
-            let ParsedType::Named(type_token) = param.typ.clone();
             let param_id = self
                 .ctx
                 .symbols
                 .borrow_mut()
-                .add_local_var(&param.token, &type_token)?;
+                .add_local_var(&param.token, &param.ty)?;
             param_ids.push(param_id);
         }
 

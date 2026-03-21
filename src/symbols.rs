@@ -1,4 +1,5 @@
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
+use crate::parser::ParsedType;
 use crate::tokens::Token;
 use std::collections::HashMap;
 
@@ -18,11 +19,11 @@ pub enum TypeDefInfo {
 }
 
 pub struct VarInfo {
-    _type: ResolvedType,
+    _ty: ResolvedType,
 }
 
 pub struct FuncInfo {
-    _return_type: ResolvedType,
+    _return_ty: ResolvedType,
     _params: Vec<SymbolID>,
 }
 
@@ -68,7 +69,7 @@ impl Symbols {
     pub fn add_local_var(
         &mut self,
         var_token: &Token,
-        type_token: &Token,
+        ty: &ParsedType,
     ) -> Result<SymbolID, Diagnostic> {
         if let Some(sym) = self.get_current_scope().get(&var_token.lexeme) {
             return Err(Diagnostic {
@@ -80,6 +81,7 @@ impl Symbols {
             });
         }
 
+        let ParsedType::Named(type_token) = ty;
         let type_id = self.get_type_id(type_token)?;
 
         let symbol = self.add_symbol(
@@ -87,7 +89,7 @@ impl Symbols {
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
-                    _type: ResolvedType::Named(type_id),
+                    _ty: ResolvedType::Named(type_id),
                 }),
             },
         );

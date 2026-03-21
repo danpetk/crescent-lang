@@ -9,7 +9,7 @@ pub type ParsedType = GenericType<Token>;
 #[derive(Debug)]
 pub struct ParsedParam {
     pub token: Token,
-    pub typ: ParsedType,
+    pub ty: ParsedType,
 }
 
 pub struct Parser<'ctx> {
@@ -122,7 +122,7 @@ impl<'ctx> Parser<'ctx> {
             let type_token = self.token_stream.expect(TokenKind::Identifier)?;
             params.push(ParsedParam {
                 token,
-                typ: ParsedType::Named(type_token),
+                ty: ParsedType::Named(type_token),
             });
             if self.token_stream.peek().kind != TokenKind::CloseParen {
                 self.token_stream.expect(TokenKind::Semi)?;

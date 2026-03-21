@@ -1,7 +1,16 @@
-use crate::ast::{BinOpKind, Expr, ParsedType, Program, Stmt, StmtKind, UnOpKind};
+use crate::ast::{BinOpKind, Expr, Program, Stmt, StmtKind, UnOpKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::tokens::{TokenKind, TokenStream};
+use crate::symbols::GenericType;
+use crate::tokens::{Token, TokenKind, TokenStream};
+
+pub type ParsedType = GenericType<Token>;
+
+#[derive(Debug)]
+pub struct ParsedParam {
+    pub token: Token,
+    pub typ: ParsedType,
+}
 
 pub struct Parser<'ctx> {
     ctx: &'ctx Context,
@@ -20,7 +29,7 @@ impl<'ctx> Parser<'ctx> {
     pub fn parse(&mut self) -> Program {
         let mut statements = vec![];
         while self.token_stream.any() {
-            match self.parse_statement() {
+            match self.parse_func() {
                 Ok(stmt) => statements.push(stmt),
                 Err(diagnostic) => {
                     self.ctx.diags.borrow_mut().report(diagnostic);
@@ -98,6 +107,38 @@ impl<'ctx> Parser<'ctx> {
             ParsedType::Named(type_token),
             rhs,
             var_token,
+        ))
+    }
+
+    fn parse_func(&mut self) -> Result<Stmt, Diagnostic> {
+        self.token_stream.expect(TokenKind::Func)?;
+        let func_token = self.token_stream.expect(TokenKind::Identifier)?;
+        self.token_stream.expect(TokenKind::OpenParen)?;
+        let mut params = vec![];
+
+        while self.token_stream.peek().kind != TokenKind::CloseParen {
+            let token = self.token_stream.expect(TokenKind::Identifier)?;
+            self.token_stream.expect(TokenKind::Colon)?;
+            let type_token = self.token_stream.expect(TokenKind::Identifier)?;
+            params.push(ParsedParam {
+                token,
+                typ: ParsedType::Named(type_token),
+            });
+            if self.token_stream.peek().kind != TokenKind::CloseParen {
+                self.token_stream.expect(TokenKind::Semi)?;
+            }
+        }
+
+        self.token_stream.expect(TokenKind::CloseParen)?;
+        self.token_stream.expect(TokenKind::Colon)?;
+        let ret_token = self.token_stream.expect(TokenKind::Identifier)?;
+        let body = self.parse_block()?;
+
+        Ok(Stmt::func_decl(
+            ParsedType::Named(ret_token),
+            params,
+            body,
+            func_token,
         ))
     }
 

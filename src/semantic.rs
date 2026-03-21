@@ -1,6 +1,7 @@
-use crate::ast::{BinOpKind, Expr, ExprKind, ParsedType, Program, Stmt, StmtKind, UnOpKind};
+use crate::ast::{BinOpKind, Expr, ExprKind, Program, Stmt, StmtKind, UnOpKind};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
+use crate::parser::{ParsedParam, ParsedType};
 use crate::symbols::SymbolID;
 use crate::tokens::Token;
 
@@ -57,6 +58,9 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
             StmtKind::VarDecl(ty, expr) => self.analyze_var_decl(ty, expr, stmt.token.clone())?,
+            StmtKind::FuncDecl(ty, params, body) => {
+                self.analyze_func_decl(ty, params, body, stmt.token.clone())?
+            }
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
             StmtKind::Return(_expr) => todo!(),
@@ -81,10 +85,15 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
 
     fn analyze_block(&mut self, stmts: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
         self.ctx.symbols.borrow_mut().push_scope();
-        for stmt in stmts {
-            self.analyze_statement(stmt)?
-        }
+        self.analyze_block_inner(stmts)?;
         self.ctx.symbols.borrow_mut().pop_scope();
+        Ok(())
+    }
+
+    fn analyze_block_inner(&mut self, stmts: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
+        for stmt in stmts {
+            self.analyze_statement(stmt)?;
+        }
         Ok(())
     }
 
@@ -101,6 +110,35 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             .symbols
             .borrow_mut()
             .add_local_var(&var_token, &type_token)?;
+        Ok(())
+    }
+
+    fn analyze_func_decl(
+        &mut self,
+        ty: &mut ParsedType,
+        params: &mut Vec<ParsedParam>,
+        body: &mut Box<Stmt>,
+        func_token: Token,
+    ) -> Result<(), Diagnostic> {
+        let mut param_ids = vec![];
+
+        self.ctx.symbols.borrow_mut().push_scope();
+        for param in params {
+            let ParsedType::Named(type_token) = param.typ.clone();
+            let param_id = self
+                .ctx
+                .symbols
+                .borrow_mut()
+                .add_local_var(&param.token, &type_token)?;
+            param_ids.push(param_id);
+        }
+
+        let StmtKind::Block(stmts) = &mut body.kind else {
+            unreachable!("func body must be a block")
+        };
+        self.analyze_block_inner(stmts)?;
+        self.ctx.symbols.borrow_mut().pop_scope();
+
         Ok(())
     }
 

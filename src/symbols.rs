@@ -18,11 +18,17 @@ pub enum TypeDefInfo {
 }
 
 pub struct VarInfo {
-    _var_type: ResolvedType,
+    _type: ResolvedType,
+}
+
+pub struct FuncInfo {
+    _return_type: ResolvedType,
+    _params: Vec<SymbolID>,
 }
 
 pub enum SymbolKind {
     Var(VarInfo),
+    Func(FuncInfo),
     Type(TypeDefInfo),
 }
 
@@ -81,7 +87,7 @@ impl Symbols {
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
-                    _var_type: ResolvedType::Named(type_id),
+                    _type: ResolvedType::Named(type_id),
                 }),
             },
         );

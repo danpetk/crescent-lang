@@ -74,6 +74,7 @@ impl<'ctx> Lexer<'ctx> {
                 '}' => self.make_token(TokenKind::CloseCurly),
                 '(' => self.make_token(TokenKind::OpenParen),
                 ')' => self.make_token(TokenKind::CloseParen),
+                ',' => self.make_token(TokenKind::Comma),
                 '!' => {
                     let kind = self.match_switch('=', TokenKind::BangEq, TokenKind::Bang);
                     self.make_token(kind)

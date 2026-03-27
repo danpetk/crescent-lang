@@ -103,7 +103,6 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         expr: &mut Box<Expr>,
         var_token: Token,
     ) -> Result<(), Diagnostic> {
-        // TODO: When we add more types, return to this to fix code
         self.analyze_expr(expr)?;
         self.ctx
             .symbols
@@ -136,6 +135,11 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         };
         self.analyze_block_inner(stmts)?;
         self.ctx.symbols.borrow_mut().pop_scope();
+
+        self.ctx
+            .symbols
+            .borrow_mut()
+            .add_local_func(&func_token, ty, param_ids)?;
 
         Ok(())
     }

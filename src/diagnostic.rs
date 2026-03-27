@@ -11,7 +11,7 @@ pub enum DiagnosticKind {
         expected: TokenKind,
         found: TokenKind,
     },
-    VarRedeclared {
+    IdentRedeclared {
         original_line: i32,
         var_name: String,
     },
@@ -40,13 +40,13 @@ impl fmt::Display for DiagnosticKind {
             Self::UnexpectedToken { expected, found } => {
                 write!(f, "Expected token '{expected}', found '{found}'")
             }
-            Self::VarRedeclared {
+            Self::IdentRedeclared {
                 original_line,
                 var_name,
             } => {
                 write!(
                     f,
-                    "Variable '{var_name}' redeclared. (Orignally declared on line {original_line})"
+                    "Identifier '{var_name}' redeclared. (Orignally declared on line {original_line})"
                 )
             }
             Self::VarUnknown { var_name } => {

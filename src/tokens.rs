@@ -16,6 +16,7 @@ pub enum TokenKind {
     // Single Char
     Semi,
     Colon,
+    Comma,
     OpenCurly,
     CloseCurly,
     OpenParen,
@@ -67,6 +68,7 @@ impl fmt::Display for TokenKind {
         let rep = match self {
             TokenKind::Semi => ";",
             TokenKind::Colon => ":",
+            TokenKind::Comma => ",",
             TokenKind::OpenCurly => "{",
             TokenKind::CloseCurly => "}",
             TokenKind::OpenParen => "(",

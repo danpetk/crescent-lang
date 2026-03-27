@@ -125,7 +125,7 @@ impl<'ctx> Parser<'ctx> {
                 ty: ParsedType::Named(type_token),
             });
             if self.token_stream.peek().kind != TokenKind::CloseParen {
-                self.token_stream.expect(TokenKind::Semi)?;
+                self.token_stream.expect(TokenKind::Comma)?;
             }
         }
 

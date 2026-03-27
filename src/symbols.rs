@@ -71,28 +71,41 @@ impl Symbols {
         var_token: &Token,
         ty: &ParsedType,
     ) -> Result<SymbolID, Diagnostic> {
-        if let Some(sym) = self.get_current_scope().get(&var_token.lexeme) {
-            return Err(Diagnostic {
-                line: var_token.line,
-                kind: DiagnosticKind::VarRedeclared {
-                    original_line: self.symbols[sym.0].line,
-                    var_name: var_token.lexeme.to_owned(),
-                },
-            });
-        }
-
         let ParsedType::Named(type_token) = ty;
         let type_id = self.get_type_id(type_token)?;
 
         let symbol = self.add_symbol(
-            &var_token.lexeme,
+            &var_token,
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
                     _ty: ResolvedType::Named(type_id),
                 }),
             },
-        );
+        )?;
+
+        Ok(symbol)
+    }
+
+    pub fn add_local_func(
+        &mut self,
+        func_token: &Token,
+        ty: &ParsedType,
+        params: Vec<SymbolID>,
+    ) -> Result<SymbolID, Diagnostic> {
+        let ParsedType::Named(type_token) = ty;
+        let return_id = self.get_type_id(type_token)?;
+
+        let symbol = self.add_symbol(
+            &func_token,
+            SymbolInfo {
+                line: func_token.line,
+                kind: SymbolKind::Func(FuncInfo {
+                    _return_ty: ResolvedType::Named(return_id),
+                    _params: params,
+                }),
+            },
+        )?;
 
         Ok(symbol)
     }
@@ -142,11 +155,22 @@ impl Symbols {
         Some((symbol, &self.symbols[symbol.0]))
     }
 
-    fn add_symbol(&mut self, name: &str, info: SymbolInfo) -> SymbolID {
+    fn add_symbol(&mut self, token: &Token, info: SymbolInfo) -> Result<SymbolID, Diagnostic> {
+        if let Some(sym) = self.get_current_scope().get(&token.lexeme) {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::IdentRedeclared {
+                    original_line: self.symbols[sym.0].line,
+                    var_name: token.lexeme.to_owned(),
+                },
+            });
+        }
+
         let symbol = self.make_symbol_id();
-        self.get_current_scope_mut().insert(name.to_owned(), symbol);
+        self.get_current_scope_mut()
+            .insert(token.lexeme.to_owned(), symbol);
         self.symbols.push(info);
-        symbol
+        Ok(symbol)
     }
 
     fn make_symbol_id(&self) -> SymbolID {

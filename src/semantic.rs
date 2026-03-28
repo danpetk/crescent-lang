@@ -70,7 +70,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             }
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
-            StmtKind::Return(_expr) => todo!(),
+            StmtKind::Return(expr) => self.analyze_return(expr)?,
         }
 
         Ok(())
@@ -190,6 +190,11 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             });
         }
         Ok(())
+    }
+
+    fn analyze_return(&mut self, expr: &mut Box<Expr>) -> Result<(), Diagnostic> {
+        self.analyze_expr(expr)?;
+        Ok(()) // TODO: Return here when we add more types
     }
 
     // TODO: Restructure this to avoid token cloning

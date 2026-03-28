@@ -73,7 +73,7 @@ impl Expr {
 #[derive(Debug)]
 pub enum StmtKind {
     VarDecl(ParsedType, Box<Expr>),
-    FuncDecl(ParsedType, Vec<ParsedParam>, Box<Stmt>),
+    FuncDecl(Option<SymbolID>, ParsedType, Vec<ParsedParam>, Box<Stmt>),
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     While(Option<LoopID>, Box<Expr>, Box<Stmt>),
     ExprStmt(Box<Expr>),
@@ -107,7 +107,7 @@ impl Stmt {
 
     pub fn func_decl(ty: ParsedType, params: Vec<ParsedParam>, body: Stmt, token: Token) -> Stmt {
         Stmt {
-            kind: StmtKind::FuncDecl(ty, params, Box::new(body)),
+            kind: StmtKind::FuncDecl(None, ty, params, Box::new(body)),
             token,
         }
     }

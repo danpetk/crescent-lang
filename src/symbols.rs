@@ -2,9 +2,18 @@ use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::parser::ParsedType;
 use crate::tokens::Token;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 #[derive(Debug, Clone, Copy)]
-pub struct SymbolID(pub usize);
+pub struct SymbolID(usize);
+
+impl Deref for SymbolID {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 // May seem bare-bones or unnecessary now but its future proofing
 #[derive(Debug, Clone)]
@@ -24,7 +33,7 @@ pub struct VarInfo {
 
 pub struct FuncInfo {
     _return_ty: ResolvedType,
-    _params: Vec<SymbolID>,
+    params: Vec<SymbolID>,
 }
 
 pub enum SymbolKind {
@@ -66,7 +75,7 @@ impl Symbols {
             .expect("pop_scope should always be paired with push_scope");
     }
 
-    pub fn add_local_var(
+    pub fn register_var(
         &mut self,
         var_token: &Token,
         ty: &ParsedType,
@@ -87,11 +96,10 @@ impl Symbols {
         Ok(symbol)
     }
 
-    pub fn add_local_func(
+    pub fn register_func(
         &mut self,
         func_token: &Token,
         ty: &ParsedType,
-        params: Vec<SymbolID>,
     ) -> Result<SymbolID, Diagnostic> {
         let ParsedType::Named(type_token) = ty;
         let return_id = self.get_type_id(type_token)?;
@@ -102,15 +110,19 @@ impl Symbols {
                 line: func_token.line,
                 kind: SymbolKind::Func(FuncInfo {
                     _return_ty: ResolvedType::Named(return_id),
-                    _params: params,
+                    params: vec![],
                 }),
             },
         )?;
 
-        Ok(symbol)
+        return Ok(symbol);
     }
 
-    pub fn get_local_var_id(&self, var_token: &Token) -> Result<SymbolID, Diagnostic> {
+    pub fn add_func_params(&mut self, id: SymbolID, params: Vec<SymbolID>) {
+        self.func_info_mut(id).params = params;
+    }
+
+    pub fn get_var_id(&self, var_token: &Token) -> Result<SymbolID, Diagnostic> {
         match self.get_symbol(&var_token.lexeme) {
             Some((id, info)) if matches!(info.kind, SymbolKind::Var(_)) => Ok(id),
             _ => Err(Diagnostic {
@@ -134,11 +146,25 @@ impl Symbols {
         }
     }
 
-    fn get_current_scope_mut(&mut self) -> &mut HashMap<String, SymbolID> {
+    pub fn func_info(&self, id: SymbolID) -> &FuncInfo {
+        match &self.symbols[*id].kind {
+            SymbolKind::Func(info) => info,
+            _ => panic!("expected symbol to be function"),
+        }
+    }
+
+    fn func_info_mut(&mut self, id: SymbolID) -> &mut FuncInfo {
+        match &mut self.symbols[*id].kind {
+            SymbolKind::Func(info) => info,
+            _ => panic!("expected symbol to be function"),
+        }
+    }
+
+    fn current_scope_mut(&mut self) -> &mut HashMap<String, SymbolID> {
         self.scopes.last_mut().expect("global scope must exist")
     }
 
-    fn get_current_scope(&self) -> &HashMap<String, SymbolID> {
+    fn current_scope(&self) -> &HashMap<String, SymbolID> {
         self.scopes.last().expect("global scope must exist")
     }
 
@@ -152,22 +178,22 @@ impl Symbols {
 
     fn get_symbol(&self, name: &str) -> Option<(SymbolID, &SymbolInfo)> {
         let symbol = self.get_symbol_id(name)?;
-        Some((symbol, &self.symbols[symbol.0]))
+        Some((symbol, &self.symbols[*symbol]))
     }
 
     fn add_symbol(&mut self, token: &Token, info: SymbolInfo) -> Result<SymbolID, Diagnostic> {
-        if let Some(sym) = self.get_current_scope().get(&token.lexeme) {
+        if let Some(sym) = self.current_scope().get(&token.lexeme) {
             return Err(Diagnostic {
                 line: token.line,
                 kind: DiagnosticKind::IdentRedeclared {
-                    original_line: self.symbols[sym.0].line,
+                    original_line: self.symbols[**sym].line,
                     var_name: token.lexeme.to_owned(),
                 },
             });
         }
 
         let symbol = self.make_symbol_id();
-        self.get_current_scope_mut()
+        self.current_scope_mut()
             .insert(token.lexeme.to_owned(), symbol);
         self.symbols.push(info);
         Ok(symbol)
@@ -179,7 +205,7 @@ impl Symbols {
 
     fn register_primative(&mut self, name: &str) {
         let symbol = self.make_symbol_id();
-        let current_scope = self.get_current_scope_mut();
+        let current_scope = self.current_scope_mut();
 
         if let Some(_) = current_scope.get(name) {
             panic!("registering duplicate primatives")

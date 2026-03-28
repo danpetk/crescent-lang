@@ -3,7 +3,10 @@ use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::parser::{ParsedParam, ParsedType};
 use crate::symbols::SymbolID;
+use crate::symbols::Symbols;
 use crate::tokens::Token;
+
+use std::cell::{Ref, RefMut};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LoopID(usize);
@@ -22,6 +25,9 @@ pub struct SemanticAnalyzer<'ctx> {
     // Stuff pertaining to loops
     next_loop_id: LoopID,
     loop_id_stack: Vec<LoopID>,
+
+    // Function
+    current_function: Option<SymbolID>,
 }
 
 impl<'ctx> SemanticAnalyzer<'ctx> {
@@ -30,6 +36,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             ctx: ctx,
             next_loop_id: LoopID(0),
             loop_id_stack: vec![],
+            current_function: None,
         }
     }
 
@@ -58,8 +65,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
             StmtKind::VarDecl(ty, expr) => self.analyze_var_decl(ty, expr, stmt.token.clone())?,
-            StmtKind::FuncDecl(ty, params, body) => {
-                self.analyze_func_decl(ty, params, body, stmt.token.clone())?
+            StmtKind::FuncDecl(id, ty, params, body) => {
+                self.analyze_func_decl(id, ty, params, body, stmt.token.clone())?
             }
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
@@ -84,9 +91,9 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     }
 
     fn analyze_block(&mut self, stmts: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
-        self.ctx.symbols.borrow_mut().push_scope();
+        self.symbols_mut().push_scope();
         self.analyze_block_inner(stmts)?;
-        self.ctx.symbols.borrow_mut().pop_scope();
+        self.symbols_mut().pop_scope();
         Ok(())
     }
 
@@ -104,43 +111,38 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         var_token: Token,
     ) -> Result<(), Diagnostic> {
         self.analyze_expr(expr)?;
-        self.ctx
-            .symbols
-            .borrow_mut()
-            .add_local_var(&var_token, &ty)?;
+        self.symbols_mut().register_var(&var_token, &ty)?;
         Ok(())
     }
 
     fn analyze_func_decl(
         &mut self,
+        id: &mut Option<SymbolID>,
         ty: &mut ParsedType,
         params: &mut Vec<ParsedParam>,
         body: &mut Box<Stmt>,
         func_token: Token,
     ) -> Result<(), Diagnostic> {
-        let mut param_ids = vec![];
+        let prev = self.current_function.take();
+        let func_id = self.symbols_mut().register_func(&func_token, ty)?;
+        *id = Some(func_id);
+        self.current_function = *id;
 
-        self.ctx.symbols.borrow_mut().push_scope();
+        self.symbols_mut().push_scope();
+        let mut param_ids = vec![];
         for param in params {
-            let param_id = self
-                .ctx
-                .symbols
-                .borrow_mut()
-                .add_local_var(&param.token, &param.ty)?;
+            let param_id = self.symbols_mut().register_var(&param.token, &param.ty)?;
             param_ids.push(param_id);
         }
+        self.symbols_mut().add_func_params(func_id, param_ids);
 
         let StmtKind::Block(stmts) = &mut body.kind else {
             unreachable!("func body must be a block")
         };
         self.analyze_block_inner(stmts)?;
-        self.ctx.symbols.borrow_mut().pop_scope();
+        self.symbols_mut().pop_scope();
 
-        self.ctx
-            .symbols
-            .borrow_mut()
-            .add_local_func(&func_token, ty, param_ids)?;
-
+        self.current_function = prev;
         Ok(())
     }
 
@@ -229,11 +231,19 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         id: &mut Option<SymbolID>,
         token: Token,
     ) -> Result<(), Diagnostic> {
-        *id = Some(self.ctx.symbols.borrow().get_local_var_id(&token)?);
+        *id = Some(self.symbols().get_var_id(&token)?);
         Ok(())
     }
 
     fn analyze_expr_literal(&mut self, _num: &mut i32) -> Result<(), Diagnostic> {
         Ok(())
+    }
+
+    fn symbols_mut(&mut self) -> RefMut<'ctx, Symbols> {
+        self.ctx.symbols.borrow_mut()
+    }
+
+    fn symbols(&self) -> Ref<'ctx, Symbols> {
+        self.ctx.symbols.borrow()
     }
 }

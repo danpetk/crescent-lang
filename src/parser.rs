@@ -56,6 +56,7 @@ impl<'ctx> Parser<'ctx> {
             TokenKind::Break => self.parse_break()?,
             TokenKind::Semi => self.parse_empty()?,
 
+            // TODO: Allow this later
             TokenKind::Func => {
                 return Err(Diagnostic {
                     line: tok.line,

@@ -47,7 +47,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
                 Ok(_) => {}
                 Err(diag) => {
                     self.ctx.diags.borrow_mut().report(diag);
-                    break;
+                    return;
                 }
             }
         }
@@ -68,9 +68,9 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::ExprStmt(expr) => self.analyze_expr(expr)?,
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
-            StmtKind::VarDecl(ty, expr) => self.analyze_var_decl(ty, expr, stmt.token.clone())?,
+            StmtKind::VarDecl(ty, expr) => self.analyze_var(ty, expr, stmt.token.clone())?,
             StmtKind::FuncDecl(id, ty, params, body) => {
-                self.analyze_func_decl(id, ty, params, body, stmt.token.clone())?
+                self.analyze_func(id, ty, params, body, stmt.token.clone())?
             }
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
@@ -108,7 +108,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_var_decl(
+    fn analyze_var(
         &mut self,
         ty: &mut ParsedType,
         expr: &mut Box<Expr>,
@@ -119,7 +119,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_func_decl(
+    fn analyze_func(
         &mut self,
         id: &mut Option<SymbolID>,
         ty: &mut ParsedType,

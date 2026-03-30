@@ -1,13 +1,13 @@
 use std::{fs::File, io::BufWriter};
 
 use crate::{
-    ast::Program,
+    ast::{Program, Stmt},
     compiler::Context,
     diagnostic::{Diagnostic, DiagnosticKind},
 };
 
 pub struct Codegen<'ctx> {
-    _ctx: &'ctx Context,
+    ctx: &'ctx Context,
     _out: BufWriter<File>,
 }
 
@@ -20,11 +20,22 @@ impl<'ctx> Codegen<'ctx> {
             },
         })?;
         let out = BufWriter::new(file);
-        Ok(Self {
-            _ctx: ctx,
-            _out: out,
-        })
+        Ok(Self { ctx, _out: out })
     }
 
-    pub fn generate_output(&mut self, _ast: &Program) {}
+    pub fn generate_output(&mut self, ast: &Program) {
+        for stmt in &ast.top {
+            match self.gen_statement(stmt) {
+                Ok(_) => {}
+                Err(diag) => {
+                    self.ctx.diags.borrow_mut().report(diag);
+                    return;
+                }
+            }
+        }
+    }
+
+    fn gen_statement(&mut self, _stmt: &Stmt) -> Result<(), Diagnostic> {
+        todo!()
+    }
 }

@@ -55,6 +55,14 @@ impl<'ctx> Parser<'ctx> {
             TokenKind::Continue => self.parse_continue()?,
             TokenKind::Break => self.parse_break()?,
             TokenKind::Semi => self.parse_empty()?,
+
+            TokenKind::Func => {
+                return Err(Diagnostic {
+                    line: tok.line,
+                    kind: DiagnosticKind::FuncInScope,
+                });
+            }
+
             _ => self.parse_expr()?.into(), // No match so assume expr statement and let that find the error
         };
 

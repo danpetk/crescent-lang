@@ -9,7 +9,7 @@ fn main() {
         exit(1)
     });
 
-    let out_path = std::env::args().nth(1).unwrap_or("out.crsnt".to_string());
+    let out_path = std::env::args().nth(2).unwrap_or("out.crsnt".to_string());
 
     let source = fs::read_to_string(&filename).unwrap_or_else(|_| {
         eprintln!("ERROR: Failed to read file '{}'", &filename);

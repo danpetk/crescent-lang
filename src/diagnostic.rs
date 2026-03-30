@@ -33,6 +33,7 @@ pub enum DiagnosticKind {
     FailedOutOpen {
         path: String,
     },
+    FuncInScope,
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -79,6 +80,12 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::FailedOutOpen { path } => {
                 write!(f, "Could not create file '{path}'")
+            }
+            Self::FuncInScope => {
+                write!(
+                    f,
+                    "Function definition outside of global scope is currently not supported."
+                )
             }
         }
     }

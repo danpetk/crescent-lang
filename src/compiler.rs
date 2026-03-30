@@ -1,3 +1,4 @@
+use crate::codegen::Codegen;
 use crate::diagnostic::{Diagnostic, Diagnostics};
 use crate::semantic::SemanticAnalyzer;
 use crate::{lexer::Lexer, parser::Parser, source::Source, symbols::Symbols};
@@ -5,14 +6,16 @@ use std::cell::RefCell;
 
 pub struct Context {
     pub source: Source,
+    pub out_path: String,
     pub symbols: RefCell<Symbols>,
     pub diags: RefCell<Diagnostics>,
 }
 
 impl Context {
-    pub fn new(source: String) -> Context {
+    pub fn new(source: String, out_path: String) -> Context {
         Context {
             source: Source::new(source),
+            out_path,
             symbols: RefCell::new(Symbols::new()),
             diags: RefCell::new(Diagnostics::default()),
         }
@@ -24,9 +27,9 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new(source: String) -> Compiler {
+    pub fn new(source: String, out_path: String) -> Compiler {
         Compiler {
-            ctx: Context::new(source),
+            ctx: Context::new(source, out_path),
         }
     }
 
@@ -54,6 +57,12 @@ impl Compiler {
         }
 
         println!("{ast:#?}");
+
+        let mut _codegen = Codegen::try_new(&self.ctx).map_err(|e| vec![e])?;
+
+        if self.ctx.diags.borrow().has_diagnostics() {
+            return Err(self.ctx.diags.borrow_mut().take_diagnostics());
+        }
 
         Ok(())
     }

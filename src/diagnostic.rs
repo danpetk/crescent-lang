@@ -30,6 +30,9 @@ pub enum DiagnosticKind {
     ContinueOutsideLoop,
     BreakOutsideLoop,
     InvalidMain,
+    FailedOutOpen {
+        path: String,
+    },
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -73,6 +76,9 @@ impl fmt::Display for DiagnosticKind {
                     f,
                     "Could not find main function with signature\n\n\tfunc main(): i32\n\nin global scope."
                 )
+            }
+            Self::FailedOutOpen { path } => {
+                write!(f, "Could not create file '{path}'")
             }
         }
     }

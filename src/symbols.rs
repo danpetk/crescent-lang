@@ -23,30 +23,36 @@ pub enum GenericType<T> {
 
 type ResolvedType = GenericType<SymbolID>;
 
+#[derive(Debug)]
 pub enum TypeDefInfo {
     Primative,
 }
 
+#[derive(Debug)]
 pub struct VarInfo {
     _ty: ResolvedType,
 }
 
+#[derive(Debug)]
 pub struct FuncInfo {
-    _return_ty: ResolvedType,
-    params: Vec<SymbolID>,
+    pub _return_ty: ResolvedType,
+    pub params: Vec<SymbolID>,
 }
 
+#[derive(Debug)]
 pub enum SymbolKind {
     Var(VarInfo),
     Func(FuncInfo),
     Type(TypeDefInfo),
 }
 
+#[derive(Debug)]
 pub struct SymbolInfo {
     line: i32,
     kind: SymbolKind,
 }
 
+#[derive(Debug)]
 pub struct Symbols {
     scopes: Vec<HashMap<String, SymbolID>>, // TODO: Change this to intered id when strings are interned
     symbols: Vec<SymbolInfo>,
@@ -150,6 +156,16 @@ impl Symbols {
         match &self.symbols[*id].kind {
             SymbolKind::Func(info) => info,
             _ => panic!("expected symbol to be function"),
+        }
+    }
+
+    pub fn get_main_id(&self) -> Option<SymbolID> {
+        match self.get_symbol_id("main") {
+            Some(id) => match &self.symbols[*id].kind {
+                SymbolKind::Func(_) => Some(id),
+                _ => None,
+            },
+            None => None,
         }
     }
 

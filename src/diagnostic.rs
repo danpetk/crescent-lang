@@ -1,5 +1,5 @@
 use crate::tokens::TokenKind;
-use std::fmt;
+use std::fmt::{self};
 
 // Again, I'd like to avoid storing owned strings in the future
 #[derive(Debug)]
@@ -29,6 +29,7 @@ pub enum DiagnosticKind {
     },
     ContinueOutsideLoop,
     BreakOutsideLoop,
+    InvalidMain,
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -67,10 +68,17 @@ impl fmt::Display for DiagnosticKind {
             Self::BreakOutsideLoop => {
                 write!(f, "'break' statement oustide of loop")
             }
+            Self::InvalidMain => {
+                write!(
+                    f,
+                    "Could not find main function with signature\n\n\tfunc main(): i32\n\nin global scope."
+                )
+            }
         }
     }
 }
 
+//TODO: We use -1 for no line, maybe change to option?
 #[derive(Debug)]
 pub struct Diagnostic {
     pub line: i32,
@@ -79,7 +87,12 @@ pub struct Diagnostic {
 
 impl fmt::Display for Diagnostic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ERROR (line {}): {}", self.line, self.kind)
+        if self.line > 0 {
+            write!(f, "ERROR (line {}): ", self.line)?;
+        } else {
+            write!(f, "ERROR: ")?
+        }
+        write!(f, "{}", self.kind)
     }
 }
 

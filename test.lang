@@ -1,4 +1,4 @@
-func main(y: i32, z: i32) : i32 {
+func main() : i32 {
     let x: i32 = 5;
     (x) = 7;
     while x {

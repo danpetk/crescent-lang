@@ -45,11 +45,15 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         for stmt in &mut ast.top {
             match self.analyze_statement(stmt) {
                 Ok(_) => {}
-                Err(diagnostic) => {
-                    self.ctx.diags.borrow_mut().report(diagnostic);
+                Err(diag) => {
+                    self.ctx.diags.borrow_mut().report(diag);
                     break;
                 }
             }
+        }
+
+        if let Err(diag) = self.validate_main() {
+            self.ctx.diags.borrow_mut().report(diag)
         }
     }
 
@@ -242,6 +246,17 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
 
     fn analyze_expr_literal(&mut self, _num: &mut i32) -> Result<(), Diagnostic> {
         Ok(())
+    }
+
+    fn validate_main(&mut self) -> Result<(), Diagnostic> {
+        let id = self.symbols().get_main_id();
+        match id {
+            Some(id) if self.symbols().func_info(id).params.len() == 0 => Ok(()),
+            _ => Err(Diagnostic {
+                line: -1,
+                kind: DiagnosticKind::InvalidMain,
+            }),
+        }
     }
 
     fn symbols_mut(&mut self) -> RefMut<'ctx, Symbols> {

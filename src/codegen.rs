@@ -1,6 +1,7 @@
 use std::{fs::File, io::BufWriter};
 
 use crate::{
+    ast::Program,
     compiler::Context,
     diagnostic::{Diagnostic, DiagnosticKind},
 };
@@ -24,4 +25,6 @@ impl<'ctx> Codegen<'ctx> {
             _out: out,
         })
     }
+
+    pub fn generate_output(&mut self, _ast: &Program) {}
 }

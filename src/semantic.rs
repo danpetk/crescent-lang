@@ -1,7 +1,9 @@
-use crate::ast::{BinOpKind, Expr, ExprKind, Program, Stmt, StmtKind, UnOpKind};
+use crate::ast::{
+    BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpKind, WhileInfo,
+};
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::parser::{ParsedParam, ParsedType};
+use crate::parser::ParsedType;
 use crate::symbols::SymbolID;
 use crate::symbols::Symbols;
 use crate::tokens::Token;
@@ -63,14 +65,12 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     fn analyze_statement(&mut self, stmt: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut stmt.kind {
             StmtKind::Empty => {}
-            StmtKind::If(cond, do_if, do_else) => self.analyze_if(cond, do_if, do_else)?,
+            StmtKind::If(info) => self.analyze_if(info)?,
             StmtKind::ExprStmt(expr) => self.analyze_expr(expr)?,
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
-            StmtKind::While(id, expr, stmt) => self.analyze_while(id, expr, stmt)?,
+            StmtKind::While(info) => self.analyze_while(info)?,
             StmtKind::VarDecl(ty, expr) => self.analyze_var(ty, expr, stmt.token.clone())?,
-            StmtKind::FuncDecl(id, ty, params, body) => {
-                self.analyze_func(id, ty, params, body, stmt.token.clone())?
-            }
+            StmtKind::FuncDecl(info) => self.analyze_func(info, stmt.token.clone())?,
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
             StmtKind::Return(expr) => self.analyze_return(expr)?,
@@ -79,12 +79,13 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_if(
-        &mut self,
-        cond: &mut Box<Expr>,
-        do_if: &mut Box<Stmt>,
-        do_else: &mut Option<Box<Stmt>>,
-    ) -> Result<(), Diagnostic> {
+    fn analyze_if(&mut self, info: &mut IfInfo) -> Result<(), Diagnostic> {
+        let IfInfo {
+            cond,
+            do_if,
+            do_else,
+        } = info;
+
         self.analyze_expr(cond)?;
         self.analyze_statement(do_if)?;
         if let Some(do_else) = do_else {
@@ -120,12 +121,16 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
 
     fn analyze_func(
         &mut self,
-        id: &mut Option<SymbolID>,
-        ty: &mut ParsedType,
-        params: &mut Vec<ParsedParam>,
-        body: &mut Box<Stmt>,
+        info: &mut FuncDeclInfo,
         func_token: Token,
     ) -> Result<(), Diagnostic> {
+        let FuncDeclInfo {
+            id,
+            ty,
+            params,
+            body,
+        } = info;
+
         let prev = self.current_function.take();
         let func_id = self.symbols_mut().register_func(&func_token, ty)?;
         *id = Some(func_id);
@@ -149,17 +154,14 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_while(
-        &mut self,
-        id: &mut Option<LoopID>,
-        expr: &mut Box<Expr>,
-        stmt: &mut Box<Stmt>,
-    ) -> Result<(), Diagnostic> {
+    fn analyze_while(&mut self, info: &mut WhileInfo) -> Result<(), Diagnostic> {
+        let WhileInfo { id, cond, body } = info;
+
         *id = Some(self.next_loop_id.next());
         self.loop_id_stack.push(id.unwrap());
 
-        self.analyze_expr(expr)?;
-        self.analyze_statement(stmt)?;
+        self.analyze_expr(cond)?;
+        self.analyze_statement(body)?;
 
         // TODO: Be very careful here, right now there is no problem because on error we fully stop
         // compiling but if we resync, an error above and this will never pop

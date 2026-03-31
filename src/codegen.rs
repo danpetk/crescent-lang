@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufWriter};
 
 use crate::{
-    ast::{Program, Stmt, StmtKind},
+    ast::{Program, Stmt},
     compiler::Context,
     diagnostic::{Diagnostic, DiagnosticKind},
 };

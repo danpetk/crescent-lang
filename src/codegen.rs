@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufWriter};
 
 use crate::{
-    ast::{Program, Stmt},
+    ast::{Program, Stmt, StmtKind},
     compiler::Context,
     diagnostic::{Diagnostic, DiagnosticKind},
 };
@@ -35,7 +35,12 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn gen_statement(&mut self, _stmt: &Stmt) -> Result<(), Diagnostic> {
-        todo!()
+    // TODO: Again.... restructure this to avoid passing individual fields in
+    // instead of passing the data in the matched enum
+    // we should match and then pass the whole node into the function ideally
+    fn gen_statement(&mut self, stmt: &Stmt) -> Result<(), Diagnostic> {
+        match stmt.kind {
+            _ => todo!(),
+        }
     }
 }

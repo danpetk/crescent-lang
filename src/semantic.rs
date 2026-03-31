@@ -60,7 +60,6 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     // TODO: Restructure this to avoid token cloning
     // instead of passing the data in the matched enum
     // we should match and then pass the whole node into the function ideally
-    // I need a way to do this with the borrow checker
     fn analyze_statement(&mut self, stmt: &mut Stmt) -> Result<(), Diagnostic> {
         match &mut stmt.kind {
             StmtKind::Empty => {}

@@ -64,6 +64,7 @@ impl<'ctx> Parser<'ctx> {
                 });
             }
 
+            // TODO: Refactor to only allow starting expr tokens to avoid _
             _ => self.parse_expr()?.into(), // No match so assume expr statement and let that find the error
         };
 

@@ -124,10 +124,6 @@ impl Symbols {
         return Ok(symbol);
     }
 
-    pub fn add_func_params(&mut self, id: SymbolID, params: Vec<SymbolID>) {
-        self.func_info_mut(id).params = params;
-    }
-
     pub fn get_var_id(&self, var_token: &Token) -> Result<SymbolID, Diagnostic> {
         match self.get_symbol(&var_token.lexeme) {
             Some((id, info)) if matches!(info.kind, SymbolKind::Var(_)) => Ok(id),
@@ -152,13 +148,6 @@ impl Symbols {
         }
     }
 
-    pub fn func_info(&self, id: SymbolID) -> &FuncInfo {
-        match &self.symbols[*id].kind {
-            SymbolKind::Func(info) => info,
-            _ => panic!("expected symbol to be function"),
-        }
-    }
-
     pub fn get_main_id(&self) -> Option<SymbolID> {
         match self.get_symbol_id("main") {
             Some(id) => match &self.symbols[*id].kind {
@@ -166,6 +155,17 @@ impl Symbols {
                 _ => None,
             },
             None => None,
+        }
+    }
+
+    pub fn add_func_params(&mut self, id: SymbolID, params: Vec<SymbolID>) {
+        self.func_info_mut(id).params = params;
+    }
+
+    pub fn func_info(&self, id: SymbolID) -> &FuncInfo {
+        match &self.symbols[*id].kind {
+            SymbolKind::Func(info) => info,
+            _ => panic!("expected symbol to be function"),
         }
     }
 

@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufWriter};
+use std::{fs::File, io::BufWriter, io::Write};
 
 use crate::{
     ast::{FuncDeclInfo, Program, Stmt, StmtKind},
@@ -8,7 +8,7 @@ use crate::{
 
 pub struct Codegen<'ctx> {
     ctx: &'ctx Context,
-    _out: BufWriter<File>,
+    out: BufWriter<File>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -20,7 +20,7 @@ impl<'ctx> Codegen<'ctx> {
             },
         })?;
         let out = BufWriter::new(file);
-        Ok(Self { ctx, _out: out })
+        Ok(Self { ctx, out })
     }
 
     pub fn generate_output(&mut self, ast: &Program) {
@@ -32,6 +32,13 @@ impl<'ctx> Codegen<'ctx> {
                     return;
                 }
             }
+        }
+
+        if self.out.flush().is_err() {
+            self.ctx.diags.borrow_mut().report(Diagnostic {
+                line: -1,
+                kind: DiagnosticKind::WriteErr,
+            });
         }
     }
 
@@ -45,8 +52,15 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn gen_func(&mut self, info: &FuncDeclInfo) -> Result<(), Diagnostic> {
-        println!("{:#?}", info);
+    fn gen_func(&mut self, _info: &FuncDeclInfo) -> Result<(), Diagnostic> {
+        self.emit("test")?;
         todo!()
+    }
+
+    fn emit(&mut self, line: &str) -> Result<(), Diagnostic> {
+        writeln!(self.out, "{line}").map_err(|_| Diagnostic {
+            line: -1,
+            kind: DiagnosticKind::WriteErr,
+        })
     }
 }

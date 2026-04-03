@@ -34,6 +34,7 @@ pub enum DiagnosticKind {
         path: String,
     },
     FuncInScope,
+    WriteErr,
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -86,6 +87,9 @@ impl fmt::Display for DiagnosticKind {
                     f,
                     "Function definition outside of global scope is currently not supported."
                 )
+            }
+            Self::WriteErr => {
+                write!(f, "Error writing to file.")
             }
         }
     }

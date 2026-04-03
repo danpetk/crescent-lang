@@ -64,6 +64,7 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr("push rbp")?;
         self.emit_instr("mov rbp, rsp")?;
         self.emit_instr("pop rbp")?;
+        self.emit_instr("ret")?;
         Ok(())
     }
 

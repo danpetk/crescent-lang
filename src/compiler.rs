@@ -56,8 +56,6 @@ impl Compiler {
             return Err(self.ctx.diags.borrow_mut().take_diagnostics());
         }
 
-        println!("{ast:#?}");
-
         let mut codegen = Codegen::try_new(&self.ctx).map_err(|e| vec![e])?;
         codegen.generate_output(&ast);
 

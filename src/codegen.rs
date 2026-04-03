@@ -1,4 +1,10 @@
-use std::{fs::File, io::BufWriter, io::Write};
+use std::{
+    cell::Ref,
+    fs::File,
+    io::{BufWriter, Write},
+};
+
+use crate::symbols::{SymbolID, Symbols};
 
 use crate::{
     ast::{FuncDeclInfo, Program, Stmt, StmtKind},
@@ -52,9 +58,29 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn gen_func(&mut self, _info: &FuncDeclInfo) -> Result<(), Diagnostic> {
-        self.emit("test")?;
-        todo!()
+    fn gen_func(&mut self, decl_info: &FuncDeclInfo) -> Result<(), Diagnostic> {
+        let emitted_name = self.mangle(decl_info.id.unwrap());
+        self.emit_label(&emitted_name, LabelKind::Normal)?;
+        self.emit_instr("push rbp")?;
+        self.emit_instr("mov rbp, rsp")?;
+        self.emit_instr("pop rbp")?;
+        Ok(())
+    }
+
+    // TODO: Better mangling logic than whatever this is
+    fn mangle(&self, id: SymbolID) -> String {
+        format!("_crsnt_f{}", *id)
+    }
+
+    fn emit_label(&mut self, label: &str, kind: LabelKind) -> Result<(), Diagnostic> {
+        match kind {
+            LabelKind::Normal => self.emit(&format!("{label}:")),
+            LabelKind::_Hidden => self.emit(&format!(".L{label}:")),
+        }
+    }
+
+    fn emit_instr(&mut self, instr: &str) -> Result<(), Diagnostic> {
+        self.emit(&format!("    {instr}"))
     }
 
     fn emit(&mut self, line: &str) -> Result<(), Diagnostic> {
@@ -63,4 +89,13 @@ impl<'ctx> Codegen<'ctx> {
             kind: DiagnosticKind::WriteErr,
         })
     }
+
+    fn _symbols(&self) -> Ref<'ctx, Symbols> {
+        self.ctx.symbols.borrow()
+    }
+}
+
+enum LabelKind {
+    Normal,
+    _Hidden,
 }

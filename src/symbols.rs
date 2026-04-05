@@ -4,7 +4,7 @@ use crate::tokens::Token;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SymbolID(usize);
 
 impl Deref for SymbolID {
@@ -31,12 +31,14 @@ pub enum TypeDefInfo {
 #[derive(Debug)]
 pub struct VarInfo {
     _ty: ResolvedType,
+    stack_offset: usize,
 }
 
 #[derive(Debug)]
 pub struct FuncInfo {
     pub _return_ty: ResolvedType,
     pub params: Vec<SymbolID>,
+    pub stack_size: usize,
 }
 
 #[derive(Debug)]
@@ -81,20 +83,24 @@ impl Symbols {
             .expect("pop_scope should always be paired with push_scope");
     }
 
+    // TODO: Decouple sema and stack offet stuff?
     pub fn register_var(
         &mut self,
         var_token: &Token,
         ty: &ParsedType,
+        func_id: SymbolID,
     ) -> Result<SymbolID, Diagnostic> {
         let ParsedType::Named(type_token) = ty;
         let type_id = self.get_type_id(type_token)?;
 
+        let stack_offset = self.increase_stack_size(func_id, 4);
         let symbol = self.add_symbol(
             &var_token,
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
                     _ty: ResolvedType::Named(type_id),
+                    stack_offset,
                 }),
             },
         )?;
@@ -117,6 +123,7 @@ impl Symbols {
                 kind: SymbolKind::Func(FuncInfo {
                     _return_ty: ResolvedType::Named(return_id),
                     params: vec![],
+                    stack_size: 0,
                 }),
             },
         )?;
@@ -160,6 +167,12 @@ impl Symbols {
 
     pub fn add_func_params(&mut self, id: SymbolID, params: Vec<SymbolID>) {
         self.func_info_mut(id).params = params;
+    }
+
+    pub fn increase_stack_size(&mut self, id: SymbolID, size: usize) -> usize {
+        let old = self.func_info_mut(id).stack_size;
+        self.func_info_mut(id).stack_size += size;
+        old
     }
 
     pub fn func_info(&self, id: SymbolID) -> &FuncInfo {

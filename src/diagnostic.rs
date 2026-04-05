@@ -1,5 +1,5 @@
 use crate::tokens::TokenKind;
-use std::fmt::{self};
+use std::fmt;
 
 // Again, I'd like to avoid storing owned strings in the future
 #[derive(Debug)]
@@ -29,6 +29,7 @@ pub enum DiagnosticKind {
     },
     ContinueOutsideLoop,
     BreakOutsideLoop,
+    ReturnOutsideFunc,
     InvalidMain,
     FailedOutOpen {
         path: String,
@@ -72,6 +73,9 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::BreakOutsideLoop => {
                 write!(f, "'break' statement oustide of loop")
+            }
+            Self::ReturnOutsideFunc => {
+                write!(f, "'return' statement outside of function")
             }
             Self::InvalidMain => {
                 write!(

@@ -73,7 +73,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::FuncDecl(info) => self.analyze_func(info, stmt.token.clone())?,
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
-            StmtKind::Return(expr) => self.analyze_return(expr)?,
+            StmtKind::Return(expr) => self.analyze_return(expr, stmt.token.clone())?,
         }
 
         Ok(())
@@ -115,7 +115,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         var_token: Token,
     ) -> Result<(), Diagnostic> {
         self.analyze_expr(expr)?;
-        self.symbols_mut().register_var(&var_token, &ty)?;
+        self.symbols_mut()
+            .register_var(&var_token, &ty, self.current_function.unwrap())?;
         Ok(())
     }
 
@@ -139,7 +140,9 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         self.symbols_mut().push_scope();
         let mut param_ids = vec![];
         for param in params {
-            let param_id = self.symbols_mut().register_var(&param.token, &param.ty)?;
+            let param_id = self
+                .symbols_mut()
+                .register_var(&param.token, &param.ty, func_id)?;
             param_ids.push(param_id);
         }
         self.symbols_mut().add_func_params(func_id, param_ids);
@@ -197,8 +200,14 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_return(&mut self, expr: &mut Box<Expr>) -> Result<(), Diagnostic> {
+    fn analyze_return(&mut self, expr: &mut Box<Expr>, token: Token) -> Result<(), Diagnostic> {
         self.analyze_expr(expr)?;
+        if self.current_function.is_none() {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::ContinueOutsideLoop,
+            });
+        }
         Ok(()) // TODO: Return here when we add more types
     }
 

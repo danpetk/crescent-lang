@@ -29,7 +29,12 @@ impl<'ctx> Codegen<'ctx> {
         Ok(Self { ctx, out })
     }
 
+    // TODO: Remove this ugly repetition and reporting
     pub fn generate_output(&mut self, ast: &Program) {
+        if self.emit(".global main").is_err() {
+            self.report_write_error();
+        }
+
         for stmt in &ast.top {
             match self.gen_statement(stmt) {
                 Ok(_) => {}
@@ -40,11 +45,13 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
+        let note = "\n; comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
+        if self.emit(note).is_err() {
+            self.report_write_error();
+        }
+
         if self.out.flush().is_err() {
-            self.ctx.diags.borrow_mut().report(Diagnostic {
-                line: -1,
-                kind: DiagnosticKind::WriteErr,
-            });
+            self.report_write_error();
         }
     }
 
@@ -59,11 +66,24 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn gen_func(&mut self, decl_info: &FuncDeclInfo) -> Result<(), Diagnostic> {
-        let emitted_name = self.mangle(decl_info.id.unwrap());
+        let func_id = decl_info.id.unwrap();
+        let emitted_name = if func_id == self.symbols().get_main_id().unwrap() {
+            "main".to_string()
+        } else {
+            self.mangle(decl_info.id.unwrap())
+        };
+
+        let symbols = self.symbols();
+        let func_info = symbols.func_info(func_id);
+        let stack_size = self.align_16(func_info.stack_size);
+
+        self.emit_blank()?;
         self.emit_label(&emitted_name, LabelKind::Normal)?;
-        self.emit_instr("push rbp")?;
-        self.emit_instr("mov rbp, rsp")?;
-        self.emit_instr("pop rbp")?;
+        self.emit_instr("pushq %rbp")?;
+        self.emit_instr("movq %rsp, %rbp")?;
+        self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
+        self.emit_instr(&format!("addq ${stack_size}, %rsp"))?;
+        self.emit_instr("popq %rbp")?;
         self.emit_instr("ret")?;
         Ok(())
     }
@@ -84,6 +104,10 @@ impl<'ctx> Codegen<'ctx> {
         self.emit(&format!("    {instr}"))
     }
 
+    fn emit_blank(&mut self) -> Result<(), Diagnostic> {
+        self.emit("")
+    }
+
     fn emit(&mut self, line: &str) -> Result<(), Diagnostic> {
         writeln!(self.out, "{line}").map_err(|_| Diagnostic {
             line: -1,
@@ -91,7 +115,18 @@ impl<'ctx> Codegen<'ctx> {
         })
     }
 
-    fn _symbols(&self) -> Ref<'ctx, Symbols> {
+    fn align_16(&self, x: usize) -> usize {
+        (x + 15) & !15
+    }
+
+    fn report_write_error(&self) {
+        self.ctx.diags.borrow_mut().report(Diagnostic {
+            line: -1,
+            kind: DiagnosticKind::WriteErr,
+        });
+    }
+
+    fn symbols(&self) -> Ref<'ctx, Symbols> {
         self.ctx.symbols.borrow()
     }
 }

@@ -1,3 +1,0 @@
-Intern strings on lexing
-Synchronization to allow for multiple parser errors being reported
-Improve compile function

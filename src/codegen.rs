@@ -37,20 +37,20 @@ enum Register {
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
-            Register::Rax => "rax",
-            Register::Rbx => "rbx",
-            Register::Rcx => "rcx",
-            Register::Rdx => "rdx",
-            Register::Rsi => "rsi",
-            Register::Rdi => "rdi",
-            Register::R8 => "r8",
-            Register::R9 => "r9",
-            Register::R10 => "r10",
-            Register::R11 => "r11",
-            Register::R12 => "r12",
-            Register::R13 => "r13",
-            Register::R14 => "r14",
-            Register::R15 => "r15",
+            Register::Rax => "%rax",
+            Register::Rbx => "%rbx",
+            Register::Rcx => "%rcx",
+            Register::Rdx => "%rdx",
+            Register::Rsi => "%rsi",
+            Register::Rdi => "%rdi",
+            Register::R8 => "%r8",
+            Register::R9 => "%r9",
+            Register::R10 => "%r10",
+            Register::R11 => "%r11",
+            Register::R12 => "%r12",
+            Register::R13 => "%r13",
+            Register::R14 => "%r14",
+            Register::R15 => "%r15",
         };
         write!(f, "{s}")
     }
@@ -150,6 +150,7 @@ impl<'ctx> Codegen<'ctx> {
     fn gen_statement(&mut self, stmt: &Stmt) -> Result<(), Diagnostic> {
         match &stmt.kind {
             StmtKind::FuncDecl(info) => self.gen_func(info),
+            StmtKind::Block(stmts) => self.gen_block(stmts),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
                 self.ra.free(reg);
@@ -183,6 +184,13 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr(&format!("addq ${stack_size}, %rsp"))?;
         self.emit_instr("popq %rbp")?;
         self.emit_instr("ret")?;
+        Ok(())
+    }
+
+    fn gen_block(&mut self, stmts: &Vec<Stmt>) -> Result<(), Diagnostic> {
+        for stmt in stmts {
+            self.gen_statement(stmt)?
+        }
         Ok(())
     }
 

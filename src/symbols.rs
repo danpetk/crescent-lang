@@ -30,8 +30,8 @@ pub enum TypeDefInfo {
 
 #[derive(Debug)]
 pub struct VarInfo {
-    _ty: ResolvedType,
-    stack_offset: usize,
+    pub _ty: ResolvedType,
+    pub stack_offset: usize,
 }
 
 #[derive(Debug)]
@@ -68,7 +68,7 @@ impl Symbols {
         };
 
         symbols.push_scope();
-        symbols.register_primative("i32");
+        symbols.register_primative("i64");
 
         symbols
     }
@@ -93,7 +93,7 @@ impl Symbols {
         let ParsedType::Named(type_token) = ty;
         let type_id = self.get_type_id(type_token)?;
 
-        let stack_offset = self.increase_stack_size(func_id, 4);
+        let stack_offset = self.increase_stack_size(func_id, 8);
         let symbol = self.add_symbol(
             &var_token,
             SymbolInfo {
@@ -179,6 +179,13 @@ impl Symbols {
         match &self.symbols[*id].kind {
             SymbolKind::Func(info) => info,
             _ => panic!("expected symbol to be function"),
+        }
+    }
+
+    pub fn var_info(&self, id: SymbolID) -> &VarInfo {
+        match &self.symbols[*id].kind {
+            SymbolKind::Var(info) => info,
+            _ => panic!("expected symbol to be var"),
         }
     }
 

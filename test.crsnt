@@ -1,3 +1,8 @@
-func main() : i32 {
-   6; 
+func main() : i64 {
+   let x: i64 = 5; 
+   let y: i64 = 7;
+   let z: i64 = 9;
+   x;
+   y;
+   z;
 }

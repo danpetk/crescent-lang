@@ -151,6 +151,7 @@ impl<'ctx> Codegen<'ctx> {
         match &stmt.kind {
             StmtKind::FuncDecl(info) => self.gen_func(info),
             StmtKind::Block(stmts) => self.gen_block(stmts),
+            StmtKind::VarDecl(_, _) => Ok(()),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
                 self.ra.free(reg);
@@ -196,14 +197,22 @@ impl<'ctx> Codegen<'ctx> {
 
     fn gen_expr(&mut self, expr: &Expr) -> Result<Register, Diagnostic> {
         match &expr.kind {
-            ExprKind::Literal(val) => self.gen_literal(*val),
+            ExprKind::Literal(val) => self.gen_expr_literal(*val),
+            ExprKind::Var(id) => self.gen_expr_var(id.unwrap()),
             _ => todo!("expr"),
         }
     }
 
-    fn gen_literal(&mut self, val: i32) -> Result<Register, Diagnostic> {
+    fn gen_expr_literal(&mut self, val: i64) -> Result<Register, Diagnostic> {
         let r = self.ra.alloc();
         self.emit_instr(&format!("movq ${val}, {r}"))?;
+        Ok(r)
+    }
+
+    fn gen_expr_var(&mut self, id: SymbolID) -> Result<Register, Diagnostic> {
+        let load_offset = self.symbols().var_info(id).stack_offset + 8;
+        let r = self.ra.alloc();
+        self.emit_instr(&format!("movq -{load_offset}(%rbp), {r}"))?;
         Ok(r)
     }
 

@@ -215,7 +215,7 @@ impl<'ctx> Parser<'ctx> {
         match token.kind {
             TokenKind::Identifier => Ok(Expr::var(token)),
             TokenKind::Literal => {
-                let val: i32 = token.lexeme.parse().map_err(|_| Diagnostic {
+                let val: i64 = token.lexeme.parse().map_err(|_| Diagnostic {
                     line: token.line,
                     kind: DiagnosticKind::NumLiteralTooLarge {
                         literal: token.lexeme.to_owned(),

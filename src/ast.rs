@@ -30,7 +30,7 @@ pub enum ExprKind {
     BinOp(BinOpKind, Box<Expr>, Box<Expr>),
     UnOp(UnOpKind, Box<Expr>),
     Var(Option<SymbolID>),
-    Literal(i32),
+    Literal(i64),
 }
 
 #[derive(Debug)]
@@ -47,7 +47,7 @@ impl Expr {
         }
     }
 
-    pub fn lit(val: i32, token: Token) -> Self {
+    pub fn lit(val: i64, token: Token) -> Self {
         Expr {
             kind: ExprKind::Literal(val),
             token,

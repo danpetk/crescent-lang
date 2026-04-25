@@ -254,7 +254,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_expr_literal(&mut self, _num: &mut i32) -> Result<(), Diagnostic> {
+    fn analyze_expr_literal(&mut self, _num: &mut i64) -> Result<(), Diagnostic> {
         Ok(())
     }
 

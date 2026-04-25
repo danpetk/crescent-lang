@@ -1,10 +1,14 @@
 use std::{
     cell::Ref,
+    fmt,
     fs::File,
     io::{BufWriter, Write},
 };
 
-use crate::symbols::{SymbolID, Symbols};
+use crate::{
+    ast::{Expr, ExprKind},
+    symbols::{SymbolID, Symbols},
+};
 
 use crate::{
     ast::{FuncDeclInfo, Program, Stmt, StmtKind},
@@ -12,9 +16,90 @@ use crate::{
     diagnostic::{Diagnostic, DiagnosticKind},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Register {
+    Rax,
+    Rbx,
+    Rcx,
+    Rdx,
+    Rsi,
+    Rdi,
+    R8,
+    R9,
+    R10,
+    R11,
+    R12,
+    R13,
+    R14,
+    R15,
+}
+
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Register::Rax => "rax",
+            Register::Rbx => "rbx",
+            Register::Rcx => "rcx",
+            Register::Rdx => "rdx",
+            Register::Rsi => "rsi",
+            Register::Rdi => "rdi",
+            Register::R8 => "r8",
+            Register::R9 => "r9",
+            Register::R10 => "r10",
+            Register::R11 => "r11",
+            Register::R12 => "r12",
+            Register::R13 => "r13",
+            Register::R14 => "r14",
+            Register::R15 => "r15",
+        };
+        write!(f, "{s}")
+    }
+}
+
+struct RegAlloc {
+    free: Vec<Register>,
+}
+
+impl RegAlloc {
+    pub fn new() -> Self {
+        Self {
+            free: vec![
+                Register::Rax,
+                Register::Rbx,
+                Register::Rcx,
+                Register::Rdx,
+                Register::Rsi,
+                Register::Rdi,
+                Register::R8,
+                Register::R9,
+                Register::R10,
+                Register::R11,
+                Register::R12,
+                Register::R13,
+                Register::R14,
+                Register::R15,
+            ],
+        }
+    }
+
+    pub fn alloc(&mut self) -> Register {
+        let reg = self
+            .free
+            .pop()
+            .expect("register must be freed before alloc");
+
+        reg
+    }
+
+    pub fn free(&mut self, reg: Register) {
+        self.free.push(reg);
+    }
+}
+
 pub struct Codegen<'ctx> {
     ctx: &'ctx Context,
     out: BufWriter<File>,
+    ra: RegAlloc,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -26,7 +111,11 @@ impl<'ctx> Codegen<'ctx> {
             },
         })?;
         let out = BufWriter::new(file);
-        Ok(Self { ctx, out })
+        Ok(Self {
+            ctx,
+            out,
+            ra: RegAlloc::new(),
+        })
     }
 
     // TODO: Remove this ugly repetition and reporting
@@ -61,11 +150,17 @@ impl<'ctx> Codegen<'ctx> {
     fn gen_statement(&mut self, stmt: &Stmt) -> Result<(), Diagnostic> {
         match &stmt.kind {
             StmtKind::FuncDecl(info) => self.gen_func(info),
-            _ => todo!(),
+            StmtKind::ExprStmt(expr) => {
+                let reg = self.gen_expr(expr)?;
+                self.ra.free(reg);
+                Ok(())
+            }
+            _ => todo!("stmt"),
         }
     }
 
     fn gen_func(&mut self, decl_info: &FuncDeclInfo) -> Result<(), Diagnostic> {
+        self.ra = RegAlloc::new(); // Reset allocater for function
         let func_id = decl_info.id.unwrap();
         let emitted_name = if func_id == self.symbols().get_main_id().unwrap() {
             "main".to_string()
@@ -82,10 +177,26 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr("pushq %rbp")?;
         self.emit_instr("movq %rsp, %rbp")?;
         self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
+
+        self.gen_statement(&decl_info.body)?;
+
         self.emit_instr(&format!("addq ${stack_size}, %rsp"))?;
         self.emit_instr("popq %rbp")?;
         self.emit_instr("ret")?;
         Ok(())
+    }
+
+    fn gen_expr(&mut self, expr: &Expr) -> Result<Register, Diagnostic> {
+        match &expr.kind {
+            ExprKind::Literal(val) => self.gen_literal(*val),
+            _ => todo!("expr"),
+        }
+    }
+
+    fn gen_literal(&mut self, val: i32) -> Result<Register, Diagnostic> {
+        let r = self.ra.alloc();
+        self.emit_instr(&format!("movq ${val}, {r}"))?;
+        Ok(r)
     }
 
     // TODO: Better mangling logic than whatever this is

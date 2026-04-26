@@ -78,6 +78,13 @@ pub struct FuncDeclInfo {
 }
 
 #[derive(Debug)]
+pub struct VarDeclInfo {
+    pub id: Option<SymbolID>,
+    pub ty: ParsedType,
+    pub expr: Box<Expr>,
+}
+
+#[derive(Debug)]
 pub struct IfInfo {
     pub cond: Box<Expr>,
     pub do_if: Box<Stmt>,
@@ -94,7 +101,7 @@ pub struct WhileInfo {
 // Different kinds of statements recognized in the language
 #[derive(Debug)]
 pub enum StmtKind {
-    VarDecl(ParsedType, Box<Expr>),
+    VarDecl(VarDeclInfo),
     FuncDecl(FuncDeclInfo),
     If(IfInfo),
     While(WhileInfo),
@@ -122,7 +129,11 @@ impl Stmt {
 
     pub fn var_decl(ty: ParsedType, expr: Expr, token: Token) -> Self {
         Stmt {
-            kind: StmtKind::VarDecl(ty, Box::new(expr)),
+            kind: StmtKind::VarDecl(VarDeclInfo {
+                id: None,
+                ty,
+                expr: Box::new(expr),
+            }),
             token,
         }
     }

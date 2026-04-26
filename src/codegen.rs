@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    ast::{Expr, ExprKind},
+    ast::{Expr, ExprKind, VarDeclInfo},
     symbols::{SymbolID, Symbols},
 };
 
@@ -151,7 +151,7 @@ impl<'ctx> Codegen<'ctx> {
         match &stmt.kind {
             StmtKind::FuncDecl(info) => self.gen_func(info),
             StmtKind::Block(stmts) => self.gen_block(stmts),
-            StmtKind::VarDecl(_, _) => Ok(()),
+            StmtKind::VarDecl(info) => self.gen_var_decl(info),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
                 self.ra.free(reg);
@@ -192,6 +192,18 @@ impl<'ctx> Codegen<'ctx> {
         for stmt in stmts {
             self.gen_statement(stmt)?
         }
+        Ok(())
+    }
+
+    fn gen_var_decl(&mut self, info: &VarDeclInfo) -> Result<(), Diagnostic> {
+        let var_id = info.id.unwrap();
+        let expr = &info.expr;
+        let cr = self.gen_expr(expr)?;
+        let store_offset = self.symbols().var_info(var_id).stack_offset + 8;
+
+        self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
+
+        self.ra.free(cr);
         Ok(())
     }
 

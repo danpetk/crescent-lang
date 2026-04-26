@@ -1,9 +1,9 @@
 use crate::ast::{
-    BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpKind, WhileInfo,
+    BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpKind,
+    VarDeclInfo, WhileInfo,
 };
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
-use crate::parser::ParsedType;
 use crate::symbols::SymbolID;
 use crate::symbols::Symbols;
 use crate::tokens::Token;
@@ -69,7 +69,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::ExprStmt(expr) => self.analyze_expr(expr)?,
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(info) => self.analyze_while(info)?,
-            StmtKind::VarDecl(ty, expr) => self.analyze_var(ty, expr, stmt.token.clone())?,
+            StmtKind::VarDecl(info) => self.analyze_var(info, stmt.token.clone())?,
             StmtKind::FuncDecl(info) => self.analyze_func(info, stmt.token.clone())?,
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
@@ -108,15 +108,13 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_var(
-        &mut self,
-        ty: &mut ParsedType,
-        expr: &mut Box<Expr>,
-        var_token: Token,
-    ) -> Result<(), Diagnostic> {
+    fn analyze_var(&mut self, info: &mut VarDeclInfo, var_token: Token) -> Result<(), Diagnostic> {
+        let VarDeclInfo { id, ty, expr } = info;
         self.analyze_expr(expr)?;
-        self.symbols_mut()
-            .register_var(&var_token, &ty, self.current_function.unwrap())?;
+        let symbol_id =
+            self.symbols_mut()
+                .register_var(&var_token, &ty, self.current_function.unwrap())?;
+        *id = Some(symbol_id);
         Ok(())
     }
 

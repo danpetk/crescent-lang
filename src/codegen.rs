@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    ast::{Expr, ExprKind, VarDeclInfo},
+    ast::{Expr, ExprKind, UnOpKind, VarDeclInfo},
     symbols::{SymbolID, Symbols},
 };
 
@@ -53,6 +53,28 @@ impl fmt::Display for Register {
             Register::R15 => "%r15",
         };
         write!(f, "{s}")
+    }
+}
+
+// TODO: Restructure registers to avoid needing to do this
+impl Register {
+    pub fn to_8bit(&self) -> &'static str {
+        match self {
+            Register::Rax => "%al",
+            Register::Rbx => "%bl",
+            Register::Rcx => "%cl",
+            Register::Rdx => "%dl",
+            Register::Rsi => "%sil",
+            Register::Rdi => "%dil",
+            Register::R8 => "%r8b",
+            Register::R9 => "%r9b",
+            Register::R10 => "%r10b",
+            Register::R11 => "%r11b",
+            Register::R12 => "%r12b",
+            Register::R13 => "%r13b",
+            Register::R14 => "%r14b",
+            Register::R15 => "%r15b",
+        }
     }
 }
 
@@ -134,7 +156,7 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
-        let note = "\n; comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
+        let note = "\n# comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
         if self.emit(note).is_err() {
             self.report_write_error();
         }
@@ -179,9 +201,11 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr("pushq %rbp")?;
         self.emit_instr("movq %rsp, %rbp")?;
         self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
+        self.emit_blank()?;
 
         self.gen_statement(&decl_info.body)?;
 
+        self.emit_blank()?;
         self.emit_instr(&format!("addq ${stack_size}, %rsp"))?;
         self.emit_instr("popq %rbp")?;
         self.emit_instr("ret")?;
@@ -211,6 +235,7 @@ impl<'ctx> Codegen<'ctx> {
         match &expr.kind {
             ExprKind::Literal(val) => self.gen_expr_literal(*val),
             ExprKind::Var(id) => self.gen_expr_var(id.unwrap()),
+            ExprKind::UnOp(op, expr) => self.gen_expr_unop(*op, expr),
             _ => todo!("expr"),
         }
     }
@@ -226,6 +251,19 @@ impl<'ctx> Codegen<'ctx> {
         let r = self.ra.alloc();
         self.emit_instr(&format!("movq -{load_offset}(%rbp), {r}"))?;
         Ok(r)
+    }
+
+    fn gen_expr_unop(&mut self, op: UnOpKind, expr: &Expr) -> Result<Register, Diagnostic> {
+        let cr = self.gen_expr(expr)?;
+        match op {
+            UnOpKind::Neg => self.emit_instr(&format!("negq {cr}"))?,
+            UnOpKind::Not => {
+                self.emit_instr(&format!("testq {cr}, {cr}"))?;
+                self.emit_instr(&format!("sete {}", cr.to_8bit()))?;
+                self.emit_instr(&format!("movezbq {} {cr}", cr.to_8bit()))?;
+            }
+        };
+        Ok(cr)
     }
 
     // TODO: Better mangling logic than whatever this is

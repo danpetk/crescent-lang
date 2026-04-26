@@ -229,12 +229,10 @@ impl<'ctx> Parser<'ctx> {
                 Ok(expr)
             }
             TokenKind::Bang => {
-                let token = self.token_stream.expect(TokenKind::Bang)?;
                 let expr = self.parse_expr()?;
                 Ok(Expr::unary_op(UnOpKind::Not, expr, token))
             }
             TokenKind::Minus => {
-                let token = self.token_stream.expect(TokenKind::Minus)?;
                 let expr = self.parse_expr()?;
                 Ok(Expr::unary_op(UnOpKind::Neg, expr, token))
             }

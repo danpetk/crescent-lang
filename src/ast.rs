@@ -3,7 +3,7 @@ use crate::semantic::LoopID;
 use crate::symbols::SymbolID;
 use crate::tokens::Token;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinOpKind {
     Assign,
     Add,
@@ -18,7 +18,7 @@ pub enum BinOpKind {
     GreaterEq,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UnOpKind {
     Not,
     Neg,

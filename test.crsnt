@@ -1,8 +1,15 @@
-
 func main() : i64 {
-   let x: i64 = 3;
-   let y: i64 = 5;
+    let x: i64 = 3;
+    let z: i64 = 0;
 
+    while x  {
+        let y: i64 = 3;
+        while y {
+            z = z + 1;
+            y = y - 1;
+        }
+        x = x - 1;
+    }
 
-    return x * y + 1 + 1;
+    return z;
 }

@@ -6,7 +6,8 @@ use std::{
 };
 
 use crate::{
-    ast::{BinOpInfo, BinOpKind, Expr, ExprKind, UnOpKind, VarDeclInfo},
+    ast::{BinOpInfo, BinOpKind, Expr, ExprKind, UnOpKind, VarDeclInfo, WhileInfo},
+    semantic::LoopID,
     symbols::{SymbolID, Symbols},
 };
 
@@ -174,6 +175,7 @@ impl<'ctx> Codegen<'ctx> {
             StmtKind::FuncDecl(info) => self.gen_func(info),
             StmtKind::Block(stmts) => self.gen_block(stmts),
             StmtKind::VarDecl(info) => self.gen_var_decl(info),
+            StmtKind::While(info) => self.gen_while(info),
             StmtKind::Return(expr) => self.get_return(expr),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
@@ -198,7 +200,7 @@ impl<'ctx> Codegen<'ctx> {
         let stack_size = self.align_16(func_info.stack_size);
 
         self.emit_blank()?;
-        self.emit_label(&emitted_name, LabelKind::Normal)?;
+        self.emit_label(&emitted_name)?;
         self.emit_instr("pushq %rbp")?;
         self.emit_instr("movq %rsp, %rbp")?;
         self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
@@ -226,6 +228,30 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
 
         self.ra.free(cr);
+        Ok(())
+    }
+
+    fn gen_while(&mut self, info: &WhileInfo) -> Result<(), Diagnostic> {
+        let WhileInfo { id, cond, body } = info;
+        let id = id.unwrap();
+
+        let (loop_start, loop_end) = self.loop_labels(id);
+
+        self.emit_label(&loop_start)?;
+        self.emit_blank()?;
+
+        let er = self.gen_expr(cond)?;
+        self.emit_instr(&format!("testq {er}, {er}"))?;
+        self.ra.free(er);
+        self.emit_instr(&format!("je {loop_end}"))?;
+        self.emit_blank()?;
+
+        self.gen_statement(body)?;
+
+        self.emit_instr(&format!("jmp {loop_start}"))?;
+        self.emit_blank()?;
+        self.emit_label(&loop_end)?;
+
         Ok(())
     }
 
@@ -286,7 +312,6 @@ impl<'ctx> Codegen<'ctx> {
             let cr = self.gen_expr(rhs)?;
 
             self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
-            self.ra.free(cr);
             return Ok(cr);
         }
 
@@ -345,11 +370,12 @@ impl<'ctx> Codegen<'ctx> {
         format!("_crsnt_f{}", *id)
     }
 
-    fn emit_label(&mut self, label: &str, kind: LabelKind) -> Result<(), Diagnostic> {
-        match kind {
-            LabelKind::Normal => self.emit(&format!("{label}:")),
-            LabelKind::_Hidden => self.emit(&format!(".L{label}:")),
-        }
+    fn loop_labels(&self, id: LoopID) -> (String, String) {
+        (format!(".L{id}_start"), format!(".L{id}_end"))
+    }
+
+    fn emit_label(&mut self, label: &str) -> Result<(), Diagnostic> {
+        self.emit(&format!("{label}:"))
     }
 
     fn emit_instr(&mut self, instr: &str) -> Result<(), Diagnostic> {
@@ -381,9 +407,4 @@ impl<'ctx> Codegen<'ctx> {
     fn symbols(&self) -> Ref<'ctx, Symbols> {
         self.ctx.symbols.borrow()
     }
-}
-
-enum LabelKind {
-    Normal,
-    _Hidden,
 }

@@ -8,6 +8,7 @@ use crate::symbols::SymbolID;
 use crate::symbols::Symbols;
 use crate::tokens::Token;
 
+use core::fmt;
 use std::cell::{Ref, RefMut};
 
 #[derive(Debug, Clone, Copy)]
@@ -18,6 +19,12 @@ impl LoopID {
         let current = *self;
         self.0 += 1;
         current
+    }
+}
+
+impl fmt::Display for LoopID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "loop{}", self.0)
     }
 }
 

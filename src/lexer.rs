@@ -102,7 +102,16 @@ impl<'ctx> Lexer<'ctx> {
                     }
                 }
                 '*' => self.make_token(TokenKind::Star),
-                '/' => self.make_token(TokenKind::Slash),
+                '/' => {
+                    if let Some(c) = self.peek_char()
+                        && c == '/'
+                    {
+                        self.skip_comment();
+                        return None;
+                    } else {
+                        self.make_token(TokenKind::Slash)
+                    }
+                }
 
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 x if x.is_numeric() => self.lex_literal(),
@@ -124,6 +133,14 @@ impl<'ctx> Lexer<'ctx> {
     fn skip_whitespace(&mut self) {
         while let Some(c) = self.peek_char()
             && c.is_whitespace()
+        {
+            self.advance_char();
+        }
+    }
+
+    fn skip_comment(&mut self) {
+        while let Some(c) = self.peek_char()
+            && (c != '\n')
         {
             self.advance_char();
         }

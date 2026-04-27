@@ -1,5 +1,9 @@
+// IsPrime
 func main() : i64 {
+
+    // Number to check 
     let n: i64 = 999999937;
+
     if n < 2 {
         return 0;
     }

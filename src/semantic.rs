@@ -28,12 +28,32 @@ impl fmt::Display for LoopID {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct IfID(usize);
+
+impl IfID {
+    pub fn next(&mut self) -> Self {
+        let current = *self;
+        self.0 += 1;
+        current
+    }
+}
+
+impl fmt::Display for IfID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "if{}", self.0)
+    }
+}
+
 pub struct SemanticAnalyzer<'ctx> {
     ctx: &'ctx Context,
 
     // Stuff pertaining to loops
     next_loop_id: LoopID,
-    loop_id_stack: Vec<LoopID>,
+    current_loop: Option<LoopID>,
+
+    // If statements
+    next_if_id: IfID,
 
     // Function
     current_function: Option<SymbolID>,
@@ -44,7 +64,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         SemanticAnalyzer {
             ctx: ctx,
             next_loop_id: LoopID(0),
-            loop_id_stack: vec![],
+            current_loop: None,
+            next_if_id: IfID(0),
             current_function: None,
         }
     }
@@ -88,11 +109,13 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
 
     fn analyze_if(&mut self, info: &mut IfInfo) -> Result<(), Diagnostic> {
         let IfInfo {
+            id,
             cond,
             do_if,
             do_else,
         } = info;
 
+        *id = Some(self.next_if_id.next());
         self.analyze_expr(cond)?;
         self.analyze_statement(do_if)?;
         if let Some(do_else) = do_else {
@@ -166,14 +189,17 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         let WhileInfo { id, cond, body } = info;
 
         *id = Some(self.next_loop_id.next());
-        self.loop_id_stack.push(id.unwrap());
+        let prev = self.current_loop.take();
+        self.current_loop = *id;
 
         self.analyze_expr(cond)?;
         self.analyze_statement(body)?;
 
         // TODO: Be very careful here, right now there is no problem because on error we fully stop
         // compiling but if we resync, an error above and this will never pop
-        self.loop_id_stack.pop();
+
+        self.current_loop = prev;
+
         Ok(())
     }
 
@@ -182,8 +208,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         id: &mut Option<LoopID>,
         token: Token,
     ) -> Result<(), Diagnostic> {
-        if let Some(current_id) = self.loop_id_stack.last() {
-            *id = Some(*current_id)
+        if let Some(current_id) = self.current_loop {
+            *id = Some(current_id)
         } else {
             return Err(Diagnostic {
                 line: token.line,
@@ -194,8 +220,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     }
 
     fn analyze_break(&mut self, id: &mut Option<LoopID>, token: Token) -> Result<(), Diagnostic> {
-        if let Some(current_id) = self.loop_id_stack.last() {
-            *id = Some(*current_id)
+        if let Some(current_id) = self.current_loop {
+            *id = Some(current_id)
         } else {
             return Err(Diagnostic {
                 line: token.line,

@@ -1,13 +1,15 @@
 func main() : i64 {
-    let a: i64 = 0;
-    let b: i64 = 1;
-    let i: i64 = 0;
-    let n: i64 = 13;
+    let n: i64 = 4;
+    if n < 2 {
+        return 0;
+    }
+    let i: i64 = 2;
     while i < n {
-        let t: i64 = a + b;
-        a = b;
-        b = t;
+        if n - (n / i) * i == 0 {
+            return 0;
+        }
         i = i + 1;
     }
-    return a;
+    return 1;
 }
+

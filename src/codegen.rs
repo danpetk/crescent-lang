@@ -6,8 +6,8 @@ use std::{
 };
 
 use crate::{
-    ast::{BinOpInfo, BinOpKind, Expr, ExprKind, UnOpKind, VarDeclInfo, WhileInfo},
-    semantic::LoopID,
+    ast::{BinOpInfo, BinOpKind, Expr, ExprKind, IfInfo, UnOpKind, VarDeclInfo, WhileInfo},
+    semantic::{IfID, LoopID},
     symbols::{SymbolID, Symbols},
 };
 
@@ -176,6 +176,7 @@ impl<'ctx> Codegen<'ctx> {
             StmtKind::FuncDecl(info) => self.gen_func(info),
             StmtKind::Block(stmts) => self.gen_block(stmts),
             StmtKind::VarDecl(info) => self.gen_var_decl(info),
+            StmtKind::If(info) => self.gen_if(info),
             StmtKind::While(info) => self.gen_while(info),
             StmtKind::Return(expr) => self.gen_return(expr),
             StmtKind::Continue(id) => self.gen_continue(id.unwrap()),
@@ -185,7 +186,6 @@ impl<'ctx> Codegen<'ctx> {
                 self.ra.free(reg);
                 Ok(())
             }
-            _ => todo!("stmt"),
         }
     }
 
@@ -231,6 +231,44 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
 
         self.ra.free(cr);
+        Ok(())
+    }
+
+    fn gen_if(&mut self, info: &IfInfo) -> Result<(), Diagnostic> {
+        let IfInfo {
+            id,
+            cond,
+            do_if,
+            do_else,
+        } = info;
+        let id = id.unwrap();
+
+        let (if_else, if_end) = self.if_labels(id);
+
+        let er = self.gen_expr(cond)?;
+
+        self.emit_blank()?;
+        self.emit_instr(&format!("testq {er}, {er}"))?;
+        self.ra.free(er);
+
+        if do_else.is_some() {
+            self.emit_instr(&format!("je {if_else}"))?;
+            self.emit_blank()?;
+
+            self.gen_statement(do_if)?;
+            self.emit_instr(&format!("jmp {if_end}"))?;
+            self.emit_blank()?;
+
+            self.emit_label(&if_else)?;
+            self.emit_blank()?;
+
+            self.gen_statement(do_else.as_ref().unwrap())?;
+        } else {
+            self.emit_instr(&format!("je {if_end}"))?;
+            self.gen_statement(do_if)?;
+        }
+
+        self.emit_label(&if_end)?;
         Ok(())
     }
 
@@ -308,7 +346,7 @@ impl<'ctx> Codegen<'ctx> {
             UnOpKind::Not => {
                 self.emit_instr(&format!("testq {cr}, {cr}"))?;
                 self.emit_instr(&format!("sete {}", cr.to_8bit()))?;
-                self.emit_instr(&format!("movezbq {}, {cr}", cr.to_8bit()))?;
+                self.emit_instr(&format!("movzbq {}, {cr}", cr.to_8bit()))?;
             }
         };
         Ok(cr)
@@ -354,15 +392,28 @@ impl<'ctx> Codegen<'ctx> {
             BinOpKind::Sub => self.emit_instr(&format!("subq {rhsr}, {lhsr}"))?,
             BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
             BinOpKind::Div => {
-                // TODO: Revisit with when register spilling is done
-                self.emit_instr("pushq %rax")?;
-                self.emit_instr("pushq %rdx")?;
+                // TODO: VERY TEMPORARY Revisit with when register spilling is done
+                if lhsr == Register::Rax {
+                    self.emit_instr("pushq %rdx")?;
+                } else if lhsr == Register::Rdx {
+                    self.emit_instr("pushq %rax")?;
+                } else {
+                    self.emit_instr("pushq %rax")?;
+                    self.emit_instr("pushq %rdx")?;
+                }
                 self.emit_instr(&format!("movq {lhsr}, %rax"))?;
                 self.emit_instr("cqto")?;
                 self.emit_instr(&format!("idivq {rhsr}"))?;
                 self.emit_instr(&format!("movq %rax, {lhsr}"))?;
-                self.emit_instr("popq %rdx")?;
-                self.emit_instr("popq %rax")?;
+
+                if lhsr == Register::Rax {
+                    self.emit_instr("popq %rdx")?;
+                } else if lhsr == Register::Rdx {
+                    self.emit_instr("popq %rax")?;
+                } else {
+                    self.emit_instr("popq %rax")?;
+                    self.emit_instr("popq %rdx")?;
+                }
             }
             BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,
             BinOpKind::NotEquals => self.emit_instr(&format!("setne {lhsr_8bit}"))?,
@@ -387,6 +438,10 @@ impl<'ctx> Codegen<'ctx> {
 
     fn loop_labels(&self, id: LoopID) -> (String, String) {
         (format!(".L{id}_start"), format!(".L{id}_end"))
+    }
+
+    fn if_labels(&self, id: IfID) -> (String, String) {
+        (format!(".L{id}_else"), format!(".L{id}_end"))
     }
 
     fn emit_label(&mut self, label: &str) -> Result<(), Diagnostic> {

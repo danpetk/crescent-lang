@@ -1,5 +1,5 @@
 use crate::parser::{ParsedParam, ParsedType};
-use crate::semantic::LoopID;
+use crate::semantic::{IfID, LoopID};
 use crate::symbols::SymbolID;
 use crate::tokens::Token;
 
@@ -97,6 +97,7 @@ pub struct VarDeclInfo {
 
 #[derive(Debug)]
 pub struct IfInfo {
+    pub id: Option<IfID>,
     pub cond: Box<Expr>,
     pub do_if: Box<Stmt>,
     pub do_else: Option<Box<Stmt>>,
@@ -164,6 +165,7 @@ impl Stmt {
     pub fn if_else(cond: Expr, do_if: Stmt, do_else: Option<Stmt>, token: Token) -> Self {
         Stmt {
             kind: StmtKind::If(IfInfo {
+                id: None,
                 cond: Box::new(cond),
                 do_if: Box::new(do_if),
                 do_else: do_else.map(Box::new),

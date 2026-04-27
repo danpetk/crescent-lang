@@ -266,7 +266,22 @@ impl<'ctx> Codegen<'ctx> {
         Ok(cr)
     }
 
-    fn gen_expr_binop(&mut self, _info: &BinOpInfo) -> Result<Register, Diagnostic> {
+    fn gen_expr_binop(&mut self, info: &BinOpInfo) -> Result<Register, Diagnostic> {
+        let BinOpInfo { op, lhs, rhs } = info;
+
+        // Explicitly handle assignment case
+        if matches!(op, BinOpKind::Assign) {
+            let ExprKind::Var(id) = lhs.kind else {
+                panic!("gen assign w/o var");
+            };
+
+            let store_offset = self.symbols().var_info(id.unwrap()).stack_offset + 8;
+            let cr = self.gen_expr(rhs)?;
+
+            self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
+            self.ra.free(cr);
+            return Ok(cr);
+        }
         todo!()
     }
 

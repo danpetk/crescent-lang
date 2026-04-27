@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    ast::{Expr, ExprKind, UnOpKind, VarDeclInfo},
+    ast::{BinOpInfo, BinOpKind, Expr, ExprKind, UnOpKind, VarDeclInfo},
     symbols::{SymbolID, Symbols},
 };
 
@@ -236,7 +236,7 @@ impl<'ctx> Codegen<'ctx> {
             ExprKind::Literal(val) => self.gen_expr_literal(*val),
             ExprKind::Var(id) => self.gen_expr_var(id.unwrap()),
             ExprKind::UnOp(op, expr) => self.gen_expr_unop(*op, expr),
-            _ => todo!("expr"),
+            ExprKind::BinOp(info) => self.gen_expr_binop(info),
         }
     }
 
@@ -264,6 +264,10 @@ impl<'ctx> Codegen<'ctx> {
             }
         };
         Ok(cr)
+    }
+
+    fn gen_expr_binop(&mut self, _info: &BinOpInfo) -> Result<Register, Diagnostic> {
+        todo!()
     }
 
     // TODO: Better mangling logic than whatever this is

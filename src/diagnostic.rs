@@ -36,6 +36,7 @@ pub enum DiagnosticKind {
     },
     FuncInScope,
     WriteErr,
+    InvalidAssignment,
 }
 
 impl fmt::Display for DiagnosticKind {
@@ -80,7 +81,7 @@ impl fmt::Display for DiagnosticKind {
             Self::InvalidMain => {
                 write!(
                     f,
-                    "Could not find main function with signature\n\n\tfunc main(): i32\n\nin global scope."
+                    "Could not find main function with signature\n\n\tfunc main(): i32\n\nin global scope"
                 )
             }
             Self::FailedOutOpen { path } => {
@@ -89,11 +90,14 @@ impl fmt::Display for DiagnosticKind {
             Self::FuncInScope => {
                 write!(
                     f,
-                    "Function definition outside of global scope is currently not supported."
+                    "Function definition outside of global scope is currently not supported"
                 )
             }
+            Self::InvalidAssignment => {
+                write!(f, "Attempted assignment to non-variable")
+            }
             Self::WriteErr => {
-                write!(f, "Error writing to file.")
+                write!(f, "Error writing to file")
             }
         }
     }

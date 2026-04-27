@@ -1,5 +1,5 @@
 use crate::ast::{
-    BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpKind,
+    BinOpInfo, BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpKind,
     VarDeclInfo, WhileInfo,
 };
 use crate::compiler::Context;
@@ -215,7 +215,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     // I need a way to do this with the borrow checker
     fn analyze_expr(&mut self, expr: &mut Box<Expr>) -> Result<(), Diagnostic> {
         match &mut expr.kind {
-            ExprKind::BinOp(kind, lhs, rhs) => self.analyze_expr_binop(kind, lhs, rhs)?,
+            ExprKind::BinOp(info) => self.analyze_expr_binop(info)?,
             ExprKind::UnOp(kind, expr) => self.analyze_expr_unop(kind, expr)?,
             ExprKind::Var(id) => self.analyze_expr_var(id, expr.token.clone())?,
             ExprKind::Literal(num) => self.analyze_expr_literal(num)?,
@@ -223,14 +223,18 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_expr_binop(
-        &mut self,
-        _kind: &mut BinOpKind,
-        lhs: &mut Box<Expr>,
-        rhs: &mut Box<Expr>,
-    ) -> Result<(), Diagnostic> {
+    fn analyze_expr_binop(&mut self, info: &mut BinOpInfo) -> Result<(), Diagnostic> {
+        let BinOpInfo { op, lhs, rhs } = info;
         self.analyze_expr(lhs)?;
         self.analyze_expr(rhs)?;
+
+        if matches!(op, BinOpKind::Assign) && !matches!(&lhs.kind, ExprKind::Var(_)) {
+            return Err(Diagnostic {
+                line: lhs.token.line,
+                kind: DiagnosticKind::InvalidAssignment,
+            });
+        }
+
         Ok(())
     }
 

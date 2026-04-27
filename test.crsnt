@@ -1,4 +1,17 @@
 func main() : i64 {
    let x: i64 = 5; 
-   x = 7;
+   let y: i64 = 6;
+
+    x + y;
+    x - y;
+    x * y; 
+    x / y; 
+    x == y;
+    x != y;
+    x < y;
+    x < y;
+    x <= y;
+    x >= y;
+    -x;
+    -y;
 }

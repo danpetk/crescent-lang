@@ -214,7 +214,8 @@ impl<'ctx> Codegen<'ctx> {
 
     fn gen_block(&mut self, stmts: &Vec<Stmt>) -> Result<(), Diagnostic> {
         for stmt in stmts {
-            self.gen_statement(stmt)?
+            self.gen_statement(stmt)?;
+            self.emit_blank()?;
         }
         Ok(())
     }
@@ -260,7 +261,7 @@ impl<'ctx> Codegen<'ctx> {
             UnOpKind::Not => {
                 self.emit_instr(&format!("testq {cr}, {cr}"))?;
                 self.emit_instr(&format!("sete {}", cr.to_8bit()))?;
-                self.emit_instr(&format!("movezbq {} {cr}", cr.to_8bit()))?;
+                self.emit_instr(&format!("movezbq {}, {cr}", cr.to_8bit()))?;
             }
         };
         Ok(cr)
@@ -282,7 +283,55 @@ impl<'ctx> Codegen<'ctx> {
             self.ra.free(cr);
             return Ok(cr);
         }
-        todo!()
+
+        let lhsr = self.gen_expr(lhs)?;
+        let rhsr = self.gen_expr(rhs)?;
+
+        let is_cmp = matches!(
+            op,
+            BinOpKind::Equals
+                | BinOpKind::NotEquals
+                | BinOpKind::LessThan
+                | BinOpKind::GreaterThan
+                | BinOpKind::LessEq
+                | BinOpKind::GreaterEq
+        );
+
+        if is_cmp {
+            self.emit_instr(&format!("cmpq {rhsr}, {lhsr}"))?;
+        }
+
+        let lhsr_8bit = lhsr.to_8bit();
+        match op {
+            BinOpKind::Assign => unreachable!(),
+            BinOpKind::Add => self.emit_instr(&format!("addq {rhsr}, {lhsr}"))?,
+            BinOpKind::Sub => self.emit_instr(&format!("subq {rhsr}, {lhsr}"))?,
+            BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
+            BinOpKind::Div => {
+                // TODO: Revisit with when register spilling is done
+                self.emit_instr("pushq %rax")?;
+                self.emit_instr("pushq %rdx")?;
+                self.emit_instr(&format!("movq {lhsr}, %rax"))?;
+                self.emit_instr("cqto")?;
+                self.emit_instr(&format!("idivq {rhsr}"))?;
+                self.emit_instr(&format!("movq %rax, {lhsr}"))?;
+                self.emit_instr("popq %rdx")?;
+                self.emit_instr("popq %rax")?;
+            }
+            BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,
+            BinOpKind::NotEquals => self.emit_instr(&format!("setne {lhsr_8bit}"))?,
+            BinOpKind::LessThan => self.emit_instr(&format!("setl {lhsr_8bit}"))?,
+            BinOpKind::GreaterThan => self.emit_instr(&format!("setg {lhsr_8bit}"))?,
+            BinOpKind::LessEq => self.emit_instr(&format!("setle {lhsr_8bit}"))?,
+            BinOpKind::GreaterEq => self.emit_instr(&format!("setge {lhsr_8bit}"))?,
+        };
+
+        if is_cmp {
+            self.emit_instr(&format!("movzbq {lhsr_8bit}, {lhsr}"))?;
+        }
+
+        self.ra.free(rhsr);
+        Ok(lhsr)
     }
 
     // TODO: Better mangling logic than whatever this is

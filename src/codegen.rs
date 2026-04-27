@@ -86,20 +86,20 @@ impl RegAlloc {
     pub fn new() -> Self {
         Self {
             free: vec![
-                Register::Rax,
-                Register::Rbx,
-                Register::Rcx,
-                Register::Rdx,
-                Register::Rsi,
-                Register::Rdi,
-                Register::R8,
-                Register::R9,
-                Register::R10,
-                Register::R11,
-                Register::R12,
-                Register::R13,
-                Register::R14,
                 Register::R15,
+                Register::R14,
+                Register::R13,
+                Register::R12,
+                Register::R11,
+                Register::R10,
+                Register::R9,
+                Register::R8,
+                Register::Rdi,
+                Register::Rsi,
+                Register::Rdx,
+                Register::Rcx,
+                Register::Rbx,
+                Register::Rax,
             ],
         }
     }
@@ -174,6 +174,7 @@ impl<'ctx> Codegen<'ctx> {
             StmtKind::FuncDecl(info) => self.gen_func(info),
             StmtKind::Block(stmts) => self.gen_block(stmts),
             StmtKind::VarDecl(info) => self.gen_var_decl(info),
+            StmtKind::Return(expr) => self.get_return(expr),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
                 self.ra.free(reg);
@@ -205,10 +206,6 @@ impl<'ctx> Codegen<'ctx> {
 
         self.gen_statement(&decl_info.body)?;
 
-        self.emit_blank()?;
-        self.emit_instr(&format!("addq ${stack_size}, %rsp"))?;
-        self.emit_instr("popq %rbp")?;
-        self.emit_instr("ret")?;
         Ok(())
     }
 
@@ -228,6 +225,15 @@ impl<'ctx> Codegen<'ctx> {
 
         self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
 
+        self.ra.free(cr);
+        Ok(())
+    }
+
+    fn get_return(&mut self, expr: &Expr) -> Result<(), Diagnostic> {
+        let cr = self.gen_expr(expr)?;
+        self.emit_instr(&format!("movq {cr}, %rax"))?;
+        self.emit_instr("leave")?;
+        self.emit_instr("ret")?;
         self.ra.free(cr);
         Ok(())
     }

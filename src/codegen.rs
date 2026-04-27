@@ -411,8 +411,8 @@ impl<'ctx> Codegen<'ctx> {
                 } else if lhsr == Register::Rdx {
                     self.emit_instr("popq %rax")?;
                 } else {
-                    self.emit_instr("popq %rax")?;
                     self.emit_instr("popq %rdx")?;
+                    self.emit_instr("popq %rax")?;
                 }
             }
             BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,

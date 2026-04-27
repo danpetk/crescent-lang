@@ -1,15 +1,13 @@
 func main() : i64 {
-    let x: i64 = 3;
-    let z: i64 = 0;
-
-    while x  {
-        let y: i64 = 3;
-        while y {
-            z = z + 1;
-            y = y - 1;
-        }
-        x = x - 1;
+    let a: i64 = 0;
+    let b: i64 = 1;
+    let i: i64 = 0;
+    let n: i64 = 13;
+    while i < n {
+        let t: i64 = a + b;
+        a = b;
+        b = t;
+        i = i + 1;
     }
-
-    return z;
+    return a;
 }

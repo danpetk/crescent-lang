@@ -172,11 +172,14 @@ impl<'ctx> Codegen<'ctx> {
     // we should match and then pass the whole node into the function ideally
     fn gen_statement(&mut self, stmt: &Stmt) -> Result<(), Diagnostic> {
         match &stmt.kind {
+            StmtKind::Empty => Ok(()),
             StmtKind::FuncDecl(info) => self.gen_func(info),
             StmtKind::Block(stmts) => self.gen_block(stmts),
             StmtKind::VarDecl(info) => self.gen_var_decl(info),
             StmtKind::While(info) => self.gen_while(info),
-            StmtKind::Return(expr) => self.get_return(expr),
+            StmtKind::Return(expr) => self.gen_return(expr),
+            StmtKind::Continue(id) => self.gen_continue(id.unwrap()),
+            StmtKind::Break(id) => self.gen_break(id.unwrap()),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
                 self.ra.free(reg);
@@ -255,12 +258,24 @@ impl<'ctx> Codegen<'ctx> {
         Ok(())
     }
 
-    fn get_return(&mut self, expr: &Expr) -> Result<(), Diagnostic> {
+    fn gen_return(&mut self, expr: &Expr) -> Result<(), Diagnostic> {
         let cr = self.gen_expr(expr)?;
         self.emit_instr(&format!("movq {cr}, %rax"))?;
         self.emit_instr("leave")?;
         self.emit_instr("ret")?;
         self.ra.free(cr);
+        Ok(())
+    }
+
+    fn gen_continue(&mut self, id: LoopID) -> Result<(), Diagnostic> {
+        let (loop_start, _) = self.loop_labels(id);
+        self.emit_instr(&format!("jmp {loop_start}"))?;
+        Ok(())
+    }
+
+    fn gen_break(&mut self, id: LoopID) -> Result<(), Diagnostic> {
+        let (_, loop_end) = self.loop_labels(id);
+        self.emit_instr(&format!("jmp {loop_end}"))?;
         Ok(())
     }
 

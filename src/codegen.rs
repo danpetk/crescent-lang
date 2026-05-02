@@ -91,7 +91,7 @@ const ALL_REGISTERS: &[Register] = {
     ]
 };
 
-// Let this entire terrible inefficient structure be a lesson as to why you should use a real IR
+// Let this entire structure be a lesson as to why you should use a real IR
 // instead of just walking the tree directly when making a compiler
 struct RegAlloc {
     free: Vec<Register>,
@@ -148,6 +148,35 @@ impl RegAlloc {
         Ok(())
     }
 
+    pub fn push_div(&self, dstr: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+        let rax_free: bool = self.free.contains(&Register::Rax);
+        let rdx_free: bool = self.free.contains(&Register::Rdx);
+
+        if dstr != Register::Rax && !rax_free {
+            self.emit_instr("pushq %rax", out)?;
+        }
+
+        if dstr != Register::Rbx && !rdx_free {
+            self.emit_instr("pushq %rdx", out)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn pop_div(&self, dstr: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+        let rax_free: bool = self.free.contains(&Register::Rax);
+        let rdx_free: bool = self.free.contains(&Register::Rdx);
+
+        if dstr != Register::Rbx && !rdx_free {
+            self.emit_instr("popq %rdx", out)?;
+        }
+
+        if dstr != Register::Rax && !rax_free {
+            self.emit_instr("popq %rax", out)?;
+        }
+
+        Ok(())
+    }
     fn get_victim(&mut self) -> Register {
         // Shuffle to front
         let victim = self.in_use.pop_front().unwrap();
@@ -155,11 +184,11 @@ impl RegAlloc {
         victim
     }
 
-    fn emit_instr(&mut self, instr: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+    fn emit_instr(&self, instr: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
         self.emit(&format!("    {instr}"), out)
     }
 
-    fn emit(&mut self, line: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+    fn emit(&self, line: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
         writeln!(out, "{line}").map_err(|_| Diagnostic {
             line: -1,
             kind: DiagnosticKind::WriteErr,
@@ -441,28 +470,14 @@ impl<'ctx> Codegen<'ctx> {
             BinOpKind::Sub => self.emit_instr(&format!("subq {rhsr}, {lhsr}"))?,
             BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
             BinOpKind::Div => {
-                // TODO: VERY TEMPORARY Revisit with when register spilling is done
-                if lhsr == Register::Rax {
-                    self.emit_instr("pushq %rdx")?;
-                } else if lhsr == Register::Rdx {
-                    self.emit_instr("pushq %rax")?;
-                } else {
-                    self.emit_instr("pushq %rax")?;
-                    self.emit_instr("pushq %rdx")?;
-                }
+                self.ra.push_div(lhsr, &mut self.out)?;
+
                 self.emit_instr(&format!("movq {lhsr}, %rax"))?;
                 self.emit_instr("cqto")?;
                 self.emit_instr(&format!("idivq {rhsr}"))?;
                 self.emit_instr(&format!("movq %rax, {lhsr}"))?;
 
-                if lhsr == Register::Rax {
-                    self.emit_instr("popq %rdx")?;
-                } else if lhsr == Register::Rdx {
-                    self.emit_instr("popq %rax")?;
-                } else {
-                    self.emit_instr("popq %rdx")?;
-                    self.emit_instr("popq %rax")?;
-                }
+                self.ra.pop_div(lhsr, &mut self.out)?;
             }
             BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,
             BinOpKind::NotEquals => self.emit_instr(&format!("setne {lhsr_8bit}"))?,

@@ -15,7 +15,7 @@ func main() : i64 {
         i = i + 1;
     }
     
-    return x;
+    return 1;
 }
 
 func uhh() : i64 {

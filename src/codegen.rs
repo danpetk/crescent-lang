@@ -1,5 +1,10 @@
+// Alot of stuff in codegen is kind of sloppy and hardcoded
+// I'm not proud of it and will perhaps fix it if i plan
+// to expand
+
 use std::{
     cell::Ref,
+    collections::{HashMap, VecDeque},
     fmt,
     fs::File,
     io::{BufWriter, Write},
@@ -17,7 +22,7 @@ use crate::{
     diagnostic::{Diagnostic, DiagnosticKind},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Register {
     Rax,
     Rbx,
@@ -79,43 +84,75 @@ impl Register {
     }
 }
 
+const ALL_REGISTERS: &[Register] = {
+    use Register::*;
+    &[
+        R15, R14, R13, R12, R11, R10, R9, R8, Rdi, Rsi, Rdx, Rcx, Rbx, Rax,
+    ]
+};
+
+// Let this entire terrible inefficient structure be a lesson as to why you should use a real IR
+// instead of just walking the tree directly when making a compiler
 struct RegAlloc {
     free: Vec<Register>,
+    in_use: VecDeque<Register>,
+    spilled: HashMap<Register, Vec<usize>>,
+    next_slot: usize,
 }
 
 impl RegAlloc {
-    pub fn new() -> Self {
+    pub fn new(init_slot: usize) -> Self {
         Self {
-            free: vec![
-                Register::R15,
-                Register::R14,
-                Register::R13,
-                Register::R12,
-                Register::R11,
-                Register::R10,
-                Register::R9,
-                Register::R8,
-                Register::Rdi,
-                Register::Rsi,
-                Register::Rdx,
-                Register::Rcx,
-                Register::Rbx,
-                Register::Rax,
-            ],
+            free: ALL_REGISTERS.to_vec(),
+            in_use: VecDeque::new(),
+            spilled: ALL_REGISTERS.iter().map(|&r| (r, vec![])).collect(),
+            next_slot: init_slot,
         }
     }
 
-    pub fn alloc(&mut self) -> Register {
-        let reg = self
-            .free
-            .pop()
-            .expect("register must be freed before alloc");
+    pub fn alloc(&mut self, out: &mut BufWriter<File>) -> Result<Register, Diagnostic> {
+        if self.free.is_empty() {
+            let spill_slot = self.next_slot;
+            if spill_slot % 16 == 0 {
+                // Make more space for spillage, we dont reuse stack space :0
+                self.emit_instr(&format!("subq $16, %rsp"), out)?;
+            }
+            self.next_slot += 8;
 
-        reg
+            let victim = self.get_victim();
+            self.spilled.get_mut(&victim).unwrap().push(spill_slot);
+            let store_offset = spill_slot + 8;
+            self.emit_instr(&format!("movq {victim}, -{store_offset}(%rbp)"), out)?;
+
+            return Ok(victim);
+        }
+
+        let reg = self.free.pop().unwrap();
+        self.in_use.push_back(reg);
+        Ok(reg)
     }
 
-    pub fn free(&mut self, reg: Register) {
+    pub fn free(&mut self, reg: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
         self.free.push(reg);
+        Ok(())
+    }
+
+    fn get_victim(&mut self) -> Register {
+        // Shuffle to front
+        let victim = self.in_use.pop_front().unwrap();
+        self.in_use.push_back(victim);
+        victim
+    }
+
+    fn emit_instr(&mut self, instr: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+        self.emit(&format!("    {instr}"), out)
+    }
+
+    fn emit(&mut self, line: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+        writeln!(out, "{line}").map_err(|_| Diagnostic {
+            line: -1,
+            kind: DiagnosticKind::WriteErr,
+        })
     }
 }
 
@@ -137,7 +174,7 @@ impl<'ctx> Codegen<'ctx> {
         Ok(Self {
             ctx,
             out,
-            ra: RegAlloc::new(),
+            ra: RegAlloc::new(0),
         })
     }
 
@@ -183,14 +220,13 @@ impl<'ctx> Codegen<'ctx> {
             StmtKind::Break(id) => self.gen_break(id.unwrap()),
             StmtKind::ExprStmt(expr) => {
                 let reg = self.gen_expr(expr)?;
-                self.ra.free(reg);
+                self.ra.free(reg, &mut self.out)?;
                 Ok(())
             }
         }
     }
 
     fn gen_func(&mut self, decl_info: &FuncDeclInfo) -> Result<(), Diagnostic> {
-        self.ra = RegAlloc::new(); // Reset allocater for function
         let func_id = decl_info.id.unwrap();
         let emitted_name = if func_id == self.symbols().get_main_id().unwrap() {
             "main".to_string()
@@ -201,6 +237,8 @@ impl<'ctx> Codegen<'ctx> {
         let symbols = self.symbols();
         let func_info = symbols.func_info(func_id);
         let stack_size = self.align_16(func_info.stack_size);
+
+        self.ra = RegAlloc::new(stack_size); // Reset allocater for function
 
         self.emit_blank()?;
         self.emit_label(&emitted_name)?;
@@ -230,7 +268,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
 
-        self.ra.free(cr);
+        self.ra.free(cr, &mut self.out)?;
         Ok(())
     }
 
@@ -249,7 +287,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.emit_blank()?;
         self.emit_instr(&format!("testq {er}, {er}"))?;
-        self.ra.free(er);
+        self.ra.free(er, &mut self.out)?;
 
         if do_else.is_some() {
             self.emit_instr(&format!("je {if_else}"))?;
@@ -283,7 +321,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let er = self.gen_expr(cond)?;
         self.emit_instr(&format!("testq {er}, {er}"))?;
-        self.ra.free(er);
+        self.ra.free(er, &mut self.out)?;
         self.emit_instr(&format!("je {loop_end}"))?;
         self.emit_blank()?;
 
@@ -301,7 +339,7 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr(&format!("movq {cr}, %rax"))?;
         self.emit_instr("leave")?;
         self.emit_instr("ret")?;
-        self.ra.free(cr);
+        self.ra.free(cr, &mut self.out)?;
         Ok(())
     }
 
@@ -327,14 +365,14 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn gen_expr_literal(&mut self, val: i64) -> Result<Register, Diagnostic> {
-        let r = self.ra.alloc();
+        let r = self.ra.alloc(&mut self.out)?;
         self.emit_instr(&format!("movq ${val}, {r}"))?;
         Ok(r)
     }
 
     fn gen_expr_var(&mut self, id: SymbolID) -> Result<Register, Diagnostic> {
         let load_offset = self.symbols().var_info(id).stack_offset + 8;
-        let r = self.ra.alloc();
+        let r = self.ra.alloc(&mut self.out)?;
         self.emit_instr(&format!("movq -{load_offset}(%rbp), {r}"))?;
         Ok(r)
     }
@@ -427,7 +465,7 @@ impl<'ctx> Codegen<'ctx> {
             self.emit_instr(&format!("movzbq {lhsr_8bit}, {lhsr}"))?;
         }
 
-        self.ra.free(rhsr);
+        self.ra.free(rhsr, &mut self.out)?;
         Ok(lhsr)
     }
 

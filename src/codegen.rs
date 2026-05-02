@@ -133,6 +133,17 @@ impl RegAlloc {
     }
 
     pub fn free(&mut self, reg: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
+        if let Some(spill_slot) = self.spilled.get_mut(&reg).unwrap().pop() {
+            let load_offset = spill_slot + 8;
+            self.emit_instr(&format!("movq -{load_offset}(%rbp), {reg}"), out)?;
+
+            return Ok(());
+        }
+
+        // Here we expect this item to exist in the in_use vec, so we unwrap to enforce this
+        // invariant
+        let pos = self.in_use.iter().position(|&r| r == reg).unwrap();
+        self.in_use.remove(pos);
         self.free.push(reg);
         Ok(())
     }

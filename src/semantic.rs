@@ -1,6 +1,6 @@
 use crate::ast::{
-    BinOpInfo, BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpInfo,
-    VarDeclInfo, WhileInfo,
+    BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, FuncDeclInfo, IfInfo, Program, Stmt,
+    StmtKind, UnOpInfo, VarDeclInfo, WhileInfo,
 };
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
@@ -251,6 +251,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             ExprKind::BinOp(info) => self.analyze_expr_binop(info)?,
             ExprKind::UnOp(info) => self.analyze_expr_unop(info)?,
             ExprKind::Var(id) => self.analyze_expr_var(id, expr.token.clone())?,
+            ExprKind::Func(info) => self.analyze_expr_func(info, expr.token.clone())?,
             ExprKind::Literal(num) => self.analyze_expr_literal(num)?,
         }
         Ok(())
@@ -285,6 +286,23 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     ) -> Result<(), Diagnostic> {
         *id = Some(self.symbols().get_var_id(&token)?);
         Ok(())
+    }
+
+    fn analyze_expr_func(
+        &mut self,
+        info: &mut FuncCallInfo,
+        token: Token,
+    ) -> Result<(), Diagnostic> {
+        let FuncCallInfo { id, args } = info;
+        *id = Some(self.symbols().get_func_id(&token)?);
+
+        for arg in args {
+            self.analyze_expr(arg)?;
+        }
+
+        let func_info = self.symbols().func_info(id.unwrap());
+        if args.len() != func_info.params.len() {}
+        todo!()
     }
 
     fn analyze_expr_literal(&mut self, _num: &mut i64) -> Result<(), Diagnostic> {

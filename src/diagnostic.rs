@@ -21,6 +21,9 @@ pub enum DiagnosticKind {
     TypeUnknown {
         type_name: String,
     },
+    FuncUnknown {
+        func_name: String,
+    },
     NumLiteralTooLarge {
         literal: String,
     },
@@ -35,6 +38,11 @@ pub enum DiagnosticKind {
         path: String,
     },
     FuncInScope,
+    MismatchedArgLen {
+        func_name: String,
+        found_num: usize,
+        expected_num: usize,
+    },
     WriteErr,
     InvalidAssignment,
 }
@@ -59,6 +67,9 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::VarUnknown { var_name } => {
                 write!(f, "Unknown variable '{var_name}'")
+            }
+            Self::FuncUnknown { func_name } => {
+                write!(f, "Unknown function '{func_name}'")
             }
             Self::TypeUnknown { type_name } => {
                 write!(f, "Unknown type '{type_name}'")
@@ -95,6 +106,16 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::InvalidAssignment => {
                 write!(f, "Attempted assignment to non-variable")
+            }
+            Self::MismatchedArgLen {
+                func_name,
+                found_num,
+                expected_num,
+            } => {
+                write!(
+                    f,
+                    "Fucntion {func_name} expects {expected_num} arguments, found {found_num} arguments"
+                )
             }
             Self::WriteErr => {
                 write!(f, "Error writing to file")

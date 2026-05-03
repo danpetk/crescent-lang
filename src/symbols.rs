@@ -155,6 +155,18 @@ impl Symbols {
         }
     }
 
+    pub fn get_func_id(&self, func_token: &Token) -> Result<SymbolID, Diagnostic> {
+        match self.get_symbol(&func_token.lexeme) {
+            Some((id, info)) if matches!(info.kind, SymbolKind::Func(_)) => Ok(id),
+            _ => Err(Diagnostic {
+                line: func_token.line,
+                kind: DiagnosticKind::FuncUnknown {
+                    func_name: func_token.lexeme.to_owned(),
+                },
+            }),
+        }
+    }
+
     pub fn get_main_id(&self) -> Option<SymbolID> {
         match self.get_symbol_id("main") {
             Some(id) => match &self.symbols[*id].kind {

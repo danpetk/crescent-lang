@@ -37,12 +37,19 @@ pub struct UnOpInfo {
     pub expr: Box<Expr>,
 }
 
+#[derive(Debug)]
+pub struct FuncCallInfo {
+    pub id: Option<SymbolID>,
+    pub args: Vec<Box<Expr>>,
+}
+
 // Different kinds of expressions recognized in the language
 #[derive(Debug)]
 pub enum ExprKind {
     BinOp(BinOpInfo),
     UnOp(UnOpInfo),
     Var(Option<SymbolID>),
+    Func(FuncCallInfo),
     Literal(i64),
 }
 
@@ -56,6 +63,17 @@ impl Expr {
     pub fn var(token: Token) -> Self {
         Expr {
             kind: ExprKind::Var(None),
+            token,
+        }
+    }
+
+    pub fn func(args: Vec<Expr>, token: Token) -> Self {
+        Expr {
+            kind: ExprKind::Func(FuncCallInfo {
+                id: None,
+                args: args.into_iter().map(Box::new).collect(),
+            }),
+
             token,
         }
     }

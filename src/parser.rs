@@ -213,7 +213,27 @@ impl<'ctx> Parser<'ctx> {
     fn parse_term(&mut self) -> Result<Expr, Diagnostic> {
         let token = self.token_stream.advance();
         match token.kind {
-            TokenKind::Identifier => Ok(Expr::var(token)),
+            TokenKind::Identifier => {
+                if self.token_stream.peek().kind != TokenKind::OpenParen {
+                    return Ok(Expr::var(token));
+                }
+
+                self.token_stream.expect(TokenKind::OpenParen)?;
+                let mut args = vec![];
+
+                while self.token_stream.peek().kind != TokenKind::CloseParen {
+                    let expr = self.parse_expr()?;
+                    args.push(expr);
+
+                    if self.token_stream.peek().kind != TokenKind::CloseParen {
+                        self.token_stream.expect(TokenKind::Comma)?;
+                    }
+                }
+
+                self.token_stream.expect(TokenKind::CloseParen)?;
+
+                Ok(Expr::func(args, token))
+            }
             TokenKind::Literal => {
                 let val: i64 = token.lexeme.parse().map_err(|_| Diagnostic {
                     line: token.line,

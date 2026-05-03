@@ -11,7 +11,9 @@ use std::{
 };
 
 use crate::{
-    ast::{BinOpInfo, BinOpKind, Expr, ExprKind, IfInfo, UnOpKind, VarDeclInfo, WhileInfo},
+    ast::{
+        BinOpInfo, BinOpKind, Expr, ExprKind, IfInfo, UnOpInfo, UnOpKind, VarDeclInfo, WhileInfo,
+    },
     semantic::{IfID, LoopID},
     symbols::{SymbolID, Symbols},
 };
@@ -399,7 +401,7 @@ impl<'ctx> Codegen<'ctx> {
         match &expr.kind {
             ExprKind::Literal(val) => self.gen_expr_literal(*val),
             ExprKind::Var(id) => self.gen_expr_var(id.unwrap()),
-            ExprKind::UnOp(op, expr) => self.gen_expr_unop(*op, expr),
+            ExprKind::UnOp(info) => self.gen_expr_unop(info),
             ExprKind::BinOp(info) => self.gen_expr_binop(info),
         }
     }
@@ -417,7 +419,8 @@ impl<'ctx> Codegen<'ctx> {
         Ok(r)
     }
 
-    fn gen_expr_unop(&mut self, op: UnOpKind, expr: &Expr) -> Result<Register, Diagnostic> {
+    fn gen_expr_unop(&mut self, info: &UnOpInfo) -> Result<Register, Diagnostic> {
+        let UnOpInfo { op, expr } = info;
         let cr = self.gen_expr(expr)?;
         match op {
             UnOpKind::Neg => self.emit_instr(&format!("negq {cr}"))?,

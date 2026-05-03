@@ -1,5 +1,5 @@
 use crate::ast::{
-    BinOpInfo, BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpKind,
+    BinOpInfo, BinOpKind, Expr, ExprKind, FuncDeclInfo, IfInfo, Program, Stmt, StmtKind, UnOpInfo,
     VarDeclInfo, WhileInfo,
 };
 use crate::compiler::Context;
@@ -249,7 +249,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
     fn analyze_expr(&mut self, expr: &mut Box<Expr>) -> Result<(), Diagnostic> {
         match &mut expr.kind {
             ExprKind::BinOp(info) => self.analyze_expr_binop(info)?,
-            ExprKind::UnOp(kind, expr) => self.analyze_expr_unop(kind, expr)?,
+            ExprKind::UnOp(info) => self.analyze_expr_unop(info)?,
             ExprKind::Var(id) => self.analyze_expr_var(id, expr.token.clone())?,
             ExprKind::Literal(num) => self.analyze_expr_literal(num)?,
         }
@@ -271,11 +271,9 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_expr_unop(
-        &mut self,
-        _kind: &mut UnOpKind,
-        expr: &mut Box<Expr>,
-    ) -> Result<(), Diagnostic> {
+    fn analyze_expr_unop(&mut self, info: &mut UnOpInfo) -> Result<(), Diagnostic> {
+        let UnOpInfo { op, expr } = info;
+        let _ = op;
         self.analyze_expr(expr)?;
         Ok(())
     }

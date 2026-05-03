@@ -31,11 +31,17 @@ pub struct BinOpInfo {
     pub rhs: Box<Expr>,
 }
 
+#[derive(Debug)]
+pub struct UnOpInfo {
+    pub op: UnOpKind,
+    pub expr: Box<Expr>,
+}
+
 // Different kinds of expressions recognized in the language
 #[derive(Debug)]
 pub enum ExprKind {
     BinOp(BinOpInfo),
-    UnOp(UnOpKind, Box<Expr>),
+    UnOp(UnOpInfo),
     Var(Option<SymbolID>),
     Literal(i64),
 }
@@ -72,9 +78,12 @@ impl Expr {
         }
     }
 
-    pub fn unary_op(kind: UnOpKind, expr: Expr, token: Token) -> Self {
+    pub fn unary_op(op: UnOpKind, expr: Expr, token: Token) -> Self {
         Expr {
-            kind: ExprKind::UnOp(kind, Box::new(expr)),
+            kind: ExprKind::UnOp(UnOpInfo {
+                op,
+                expr: Box::new(expr),
+            }),
             token,
         }
     }

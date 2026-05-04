@@ -296,13 +296,22 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         let FuncCallInfo { id, args } = info;
         *id = Some(self.symbols().get_func_id(&token)?);
 
-        for arg in args {
+        for arg in args.iter_mut() {
             self.analyze_expr(arg)?;
         }
 
-        let func_info = self.symbols().func_info(id.unwrap());
-        if args.len() != func_info.params.len() {}
-        todo!()
+        let expected_num = self.symbols().func_info(id.unwrap()).params.len();
+        if args.len() != expected_num {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::MismatchedArgLen {
+                    found_num: args.len(),
+                    expected_num,
+                },
+            });
+        }
+
+        Ok(())
     }
 
     fn analyze_expr_literal(&mut self, _num: &mut i64) -> Result<(), Diagnostic> {

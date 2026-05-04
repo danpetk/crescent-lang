@@ -403,6 +403,7 @@ impl<'ctx> Codegen<'ctx> {
             ExprKind::Var(id) => self.gen_expr_var(id.unwrap()),
             ExprKind::UnOp(info) => self.gen_expr_unop(info),
             ExprKind::BinOp(info) => self.gen_expr_binop(info),
+            _ => todo!(),
         }
     }
 

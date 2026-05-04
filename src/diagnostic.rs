@@ -39,7 +39,6 @@ pub enum DiagnosticKind {
     },
     FuncInScope,
     MismatchedArgLen {
-        func_name: String,
         found_num: usize,
         expected_num: usize,
     },
@@ -108,13 +107,12 @@ impl fmt::Display for DiagnosticKind {
                 write!(f, "Attempted assignment to non-variable")
             }
             Self::MismatchedArgLen {
-                func_name,
                 found_num,
                 expected_num,
             } => {
                 write!(
                     f,
-                    "Fucntion {func_name} expects {expected_num} arguments, found {found_num} arguments"
+                    "Fucntion expects {expected_num} arguments, found {found_num} arguments"
                 )
             }
             Self::WriteErr => {

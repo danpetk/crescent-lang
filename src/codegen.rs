@@ -163,31 +163,33 @@ impl RegAlloc {
         Ok(())
     }
 
-    pub fn push_div(&self, dstr: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
-        let rax_free: bool = self.free.contains(&Register::Rax);
-        let rdx_free: bool = self.free.contains(&Register::Rdx);
-
-        if dstr != Register::Rax && !rax_free {
-            self.emit_instr("pushq %rax", out)?;
-        }
-
-        if dstr != Register::Rbx && !rdx_free {
-            self.emit_instr("pushq %rdx", out)?;
+    pub fn save_registers(
+        &self,
+        dstr: Register,
+        saved: Vec<Register>,
+        out: &mut BufWriter<File>,
+    ) -> Result<(), Diagnostic> {
+        for reg in saved {
+            let reg_free = self.free.contains(&reg);
+            if dstr != reg && !reg_free {
+                self.emit_instr(&format!("pushq {reg}"), out)?;
+            }
         }
 
         Ok(())
     }
 
-    pub fn pop_div(&self, dstr: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
-        let rax_free: bool = self.free.contains(&Register::Rax);
-        let rdx_free: bool = self.free.contains(&Register::Rdx);
-
-        if dstr != Register::Rbx && !rdx_free {
-            self.emit_instr("popq %rdx", out)?;
-        }
-
-        if dstr != Register::Rax && !rax_free {
-            self.emit_instr("popq %rax", out)?;
+    pub fn load_registers(
+        &self,
+        dstr: Register,
+        saved: Vec<Register>,
+        out: &mut BufWriter<File>,
+    ) -> Result<(), Diagnostic> {
+        for reg in saved.into_iter().rev() {
+            let reg_free = self.free.contains(&reg);
+            if dstr != reg && !reg_free {
+                self.emit_instr(&format!("pushq {reg}"), out)?;
+            }
         }
 
         Ok(())
@@ -451,7 +453,12 @@ impl<'ctx> Codegen<'ctx> {
         Ok(r)
     }
 
-    fn gen_expr_func(&mut self, _info: &FuncCallInfo) -> Result<Register, Diagnostic> {
+    fn gen_expr_func(&mut self, info: &FuncCallInfo) -> Result<Register, Diagnostic> {
+        let FuncCallInfo { id, args } = info;
+        let r = self.ra.alloc_any(&mut self.out)?;
+
+        // Get the registers that we will be using
+
         todo!()
     }
 
@@ -509,14 +516,16 @@ impl<'ctx> Codegen<'ctx> {
             BinOpKind::Sub => self.emit_instr(&format!("subq {rhsr}, {lhsr}"))?,
             BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
             BinOpKind::Div => {
-                self.ra.push_div(lhsr, &mut self.out)?;
+                self.ra
+                    .save_registers(lhsr, vec![Register::Rax, Register::Rdx], &mut self.out)?;
 
                 self.emit_instr(&format!("movq {lhsr}, %rax"))?;
                 self.emit_instr("cqto")?;
                 self.emit_instr(&format!("idivq {rhsr}"))?;
                 self.emit_instr(&format!("movq %rax, {lhsr}"))?;
 
-                self.ra.pop_div(lhsr, &mut self.out)?;
+                self.ra
+                    .load_registers(lhsr, vec![Register::Rax, Register::Rdx], &mut self.out)?;
             }
             BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,
             BinOpKind::NotEquals => self.emit_instr(&format!("setne {lhsr_8bit}"))?,

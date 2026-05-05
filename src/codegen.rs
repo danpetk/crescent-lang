@@ -101,6 +101,7 @@ struct RegAlloc {
     in_use: VecDeque<Register>,
     spilled: HashMap<Register, Vec<i64>>,
     next_slot: i64,
+    spill_activity: Vec<i64>,
 }
 
 impl RegAlloc {
@@ -109,6 +110,7 @@ impl RegAlloc {
             free: ALL_REGISTERS.to_vec(),
             in_use: VecDeque::new(),
             spilled: ALL_REGISTERS.iter().map(|&r| (r, vec![])).collect(),
+            spill_activity: vec![],
             next_slot: -(stack_size as i64) - 8,
         }
     }
@@ -138,6 +140,9 @@ impl RegAlloc {
         if spill_slot % 16 == -8 {
             // Make more space for spillage, we dont reuse stack space :0
             self.emit_instr(&format!("subq $16, %rsp"), out)?;
+            if let Some(slot) = self.spill_activity.last_mut() {
+                *slot += 16;
+            }
         }
         self.next_slot -= 8;
 
@@ -164,14 +169,16 @@ impl RegAlloc {
     }
 
     pub fn save_registers(
-        &self,
+        &mut self,
         dstr: Register,
-        saved: Vec<Register>,
+        saved: &Vec<Register>,
         out: &mut BufWriter<File>,
     ) -> Result<(), Diagnostic> {
+        self.spill_activity.push(0);
+
         for reg in saved {
             let reg_free = self.free.contains(&reg);
-            if dstr != reg && !reg_free {
+            if dstr != *reg && !reg_free {
                 self.emit_instr(&format!("pushq {reg}"), out)?;
             }
         }
@@ -180,15 +187,21 @@ impl RegAlloc {
     }
 
     pub fn load_registers(
-        &self,
+        &mut self,
         dstr: Register,
-        saved: Vec<Register>,
+        saved: &Vec<Register>,
         out: &mut BufWriter<File>,
     ) -> Result<(), Diagnostic> {
+        // Any stack activity from spilling, we must readjust before we pop again
+        let spilled = self.spill_activity.pop().unwrap();
+        if spilled > 0 {
+            self.emit_instr(&format!("addq ${spilled}, %rsp"), out)?
+        }
+
         for reg in saved.into_iter().rev() {
             let reg_free = self.free.contains(&reg);
-            if dstr != reg && !reg_free {
-                self.emit_instr(&format!("pushq {reg}"), out)?;
+            if dstr != *reg && !reg_free {
+                self.emit_instr(&format!("popq {reg}"), out)?;
             }
         }
 
@@ -306,16 +319,11 @@ impl<'ctx> Codegen<'ctx> {
         }
         self.emit_blank()?;
 
+        if !func_info.params.is_empty() {
+            self.emit_instr("# Move register paramaters onto variable stack slot")?;
+        }
         for (index, id) in func_info.params.iter().enumerate().take(6) {
-            let reg = match index {
-                0 => "%rdi",
-                1 => "%rsi",
-                2 => "%rdx",
-                3 => "%rcx",
-                4 => "%r8",
-                5 => "%r9",
-                _ => unreachable!(),
-            };
+            let reg = self.index_to_param_reg_str(index);
 
             let offset = self.symbols().var_info(*id).offset;
             self.emit_instr(&format!("movq {reg}, {offset}(%rbp)"))?;
@@ -453,13 +461,65 @@ impl<'ctx> Codegen<'ctx> {
         Ok(r)
     }
 
-    fn gen_expr_func(&mut self, _info: &FuncCallInfo) -> Result<Register, Diagnostic> {
-        // let FuncCallInfo { id, args } = info;
-        // let r = self.ra.alloc_any(&mut self.out)?;
+    fn gen_expr_func(&mut self, info: &FuncCallInfo) -> Result<Register, Diagnostic> {
+        let FuncCallInfo { id, args } = info;
+        let id = id.unwrap();
 
-        // Get the registers that we will be using
+        self.emit_blank()?;
+        self.emit_instr(&format!("# Calling function {}", self.mangle(id)))?;
 
-        todo!()
+        let r = self.ra.alloc_any(&mut self.out)?;
+
+        let caller_saved = {
+            use Register::*;
+            vec![Rax, Rcx, Rdx, Rsi, Rdi, R8, R9, R10, R11]
+        };
+
+        self.ra.save_registers(r, &caller_saved, &mut self.out)?;
+
+        // left to right
+        let mut arg_regs = vec![];
+        for expr in args {
+            arg_regs.push(self.gen_expr(expr)?)
+        }
+
+        const MAX_REGISTER_PARAMS: usize = 6;
+        let mid = arg_regs.len().min(MAX_REGISTER_PARAMS);
+        let (register_params, stack_params) = arg_regs.split_at(mid);
+
+        let total_param_offset = if stack_params.len() % 2 == 0 {
+            stack_params.len() * 8
+        } else {
+            // odd number of params we must pad
+            self.emit_instr("subq $8, %rsp")?;
+            stack_params.len() * 8 + 8
+        };
+
+        // now we handle the allocated registers in reverse
+        for reg in stack_params.iter().rev() {
+            self.emit_instr(&format!("pushq {reg}"))?;
+            self.ra.free(*reg, &mut self.out)?;
+        }
+
+        for (index, reg) in register_params.iter().enumerate().rev() {
+            let param_reg = self.index_to_param_reg_str(index);
+            self.emit_instr(&format!("movq {reg}, {param_reg}"))?;
+            self.ra.free(*reg, &mut self.out)?;
+        }
+
+        self.emit_instr(&format!("call {}", self.mangle(id)))?;
+        self.emit_movq_reg(Register::Rax, r)?;
+
+        // clear all the stack params that we pushed
+        if total_param_offset > 0 {
+            self.emit_instr(&format!("addq ${total_param_offset}, %rsp"))?;
+        }
+        self.ra.load_registers(r, &caller_saved, &mut self.out)?;
+
+        self.emit_instr(&format!("# Done calling function {}", self.mangle(id)))?;
+        self.emit_blank()?;
+
+        Ok(r)
     }
 
     fn gen_expr_unop(&mut self, info: &UnOpInfo) -> Result<Register, Diagnostic> {
@@ -517,7 +577,7 @@ impl<'ctx> Codegen<'ctx> {
             BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
             BinOpKind::Div => {
                 self.ra
-                    .save_registers(lhsr, vec![Register::Rax, Register::Rdx], &mut self.out)?;
+                    .save_registers(lhsr, &vec![Register::Rax, Register::Rdx], &mut self.out)?;
 
                 self.emit_movq_reg(lhsr, Register::Rax)?;
                 //self.emit_instr(&format!("movq {lhsr}, %rax"))?;
@@ -527,7 +587,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.emit_movq_reg(Register::Rax, lhsr)?;
 
                 self.ra
-                    .load_registers(lhsr, vec![Register::Rax, Register::Rdx], &mut self.out)?;
+                    .load_registers(lhsr, &vec![Register::Rax, Register::Rdx], &mut self.out)?;
             }
             BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,
             BinOpKind::NotEquals => self.emit_instr(&format!("setne {lhsr_8bit}"))?,
@@ -556,6 +616,18 @@ impl<'ctx> Codegen<'ctx> {
 
     fn if_labels(&self, id: IfID) -> (String, String) {
         (format!(".L{id}_else"), format!(".L{id}_end"))
+    }
+
+    fn index_to_param_reg_str(&self, index: usize) -> &'static str {
+        match index {
+            0 => "%rdi",
+            1 => "%rsi",
+            2 => "%rdx",
+            3 => "%rcx",
+            4 => "%r8",
+            5 => "%r9",
+            _ => unreachable!(),
+        }
     }
 
     fn emit_movq_reg(&mut self, src: Register, dst: Register) -> Result<(), Diagnostic> {

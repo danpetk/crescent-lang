@@ -301,7 +301,9 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_label(&emitted_name)?;
         self.emit_instr("pushq %rbp")?;
         self.emit_instr("movq %rsp, %rbp")?;
-        self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
+        if stack_size > 0 {
+            self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
+        }
         self.emit_blank()?;
 
         for (index, id) in func_info.params.iter().enumerate().take(6) {
@@ -409,9 +411,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn gen_return(&mut self, expr: &Expr) -> Result<(), Diagnostic> {
         let cr = self.gen_expr(expr)?;
-        if cr != Register::Rax {
-            self.emit_instr(&format!("movq {cr}, %rax"))?;
-        }
+        self.emit_movq_reg(cr, Register::Rax)?;
         self.emit_instr("leave")?;
         self.emit_instr("ret")?;
         self.ra.free(cr, &mut self.out)?;
@@ -453,9 +453,9 @@ impl<'ctx> Codegen<'ctx> {
         Ok(r)
     }
 
-    fn gen_expr_func(&mut self, info: &FuncCallInfo) -> Result<Register, Diagnostic> {
-        let FuncCallInfo { id, args } = info;
-        let r = self.ra.alloc_any(&mut self.out)?;
+    fn gen_expr_func(&mut self, _info: &FuncCallInfo) -> Result<Register, Diagnostic> {
+        // let FuncCallInfo { id, args } = info;
+        // let r = self.ra.alloc_any(&mut self.out)?;
 
         // Get the registers that we will be using
 
@@ -519,10 +519,12 @@ impl<'ctx> Codegen<'ctx> {
                 self.ra
                     .save_registers(lhsr, vec![Register::Rax, Register::Rdx], &mut self.out)?;
 
-                self.emit_instr(&format!("movq {lhsr}, %rax"))?;
+                self.emit_movq_reg(lhsr, Register::Rax)?;
+                //self.emit_instr(&format!("movq {lhsr}, %rax"))?;
                 self.emit_instr("cqto")?;
                 self.emit_instr(&format!("idivq {rhsr}"))?;
-                self.emit_instr(&format!("movq %rax, {lhsr}"))?;
+                //self.emit_instr(&format!("movq %rax, {lhsr}"))?;
+                self.emit_movq_reg(Register::Rax, lhsr)?;
 
                 self.ra
                     .load_registers(lhsr, vec![Register::Rax, Register::Rdx], &mut self.out)?;
@@ -554,6 +556,13 @@ impl<'ctx> Codegen<'ctx> {
 
     fn if_labels(&self, id: IfID) -> (String, String) {
         (format!(".L{id}_else"), format!(".L{id}_end"))
+    }
+
+    fn emit_movq_reg(&mut self, src: Register, dst: Register) -> Result<(), Diagnostic> {
+        if src != dst {
+            self.emit_instr(&format!("movq {src}, {dst}"))?;
+        }
+        Ok(())
     }
 
     fn emit_label(&mut self, label: &str) -> Result<(), Diagnostic> {

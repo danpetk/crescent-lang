@@ -4,6 +4,11 @@ func uhh() : i64 {
 }
 
 
+func t() : i64 {
+  return 5;
+}
+
+
 // IsPrime
 func main() : i64 {
 

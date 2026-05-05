@@ -119,10 +119,11 @@ impl Symbols {
 
         let current_param_num = self.func_info_mut(func_id).params.len();
 
-        let symbol = if current_param_num < 6 {
+        const MAX_REGISTER_PARAMS: usize = 6;
+        let symbol = if current_param_num < MAX_REGISTER_PARAMS {
             self.register_var(var_token, ty, func_id)?
         } else {
-            let offset = current_param_num as i64 * 8 + 16;
+            let offset = (current_param_num - MAX_REGISTER_PARAMS) as i64 * 8 + 16;
             self.add_symbol(
                 &var_token,
                 SymbolInfo {

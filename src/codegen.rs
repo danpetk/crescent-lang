@@ -287,6 +287,22 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
         self.emit_blank()?;
 
+        for (index, id) in func_info.params.iter().enumerate().take(6) {
+            let reg = match index {
+                0 => "%rdi",
+                1 => "%rsi",
+                2 => "%rdx",
+                3 => "%rcx",
+                4 => "%r8",
+                5 => "%r9",
+                _ => unreachable!(),
+            };
+
+            let offset = self.symbols().var_info(*id).offset;
+            self.emit_instr(&format!("movq {reg}, {offset}(%rbp)"))?;
+        }
+
+        self.emit_blank()?;
         self.gen_statement(&decl_info.body)?;
 
         Ok(())

@@ -12,7 +12,8 @@ use std::{
 
 use crate::{
     ast::{
-        BinOpInfo, BinOpKind, Expr, ExprKind, IfInfo, UnOpInfo, UnOpKind, VarDeclInfo, WhileInfo,
+        BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, IfInfo, UnOpInfo, UnOpKind,
+        VarDeclInfo, WhileInfo,
     },
     semantic::{IfID, LoopID},
     symbols::{SymbolID, Symbols},
@@ -112,25 +113,39 @@ impl RegAlloc {
         }
     }
 
-    pub fn alloc(&mut self, out: &mut BufWriter<File>) -> Result<Register, Diagnostic> {
-        if self.free.is_empty() {
-            let spill_slot = self.next_slot;
-            if spill_slot % 16 == -8 {
-                // Make more space for spillage, we dont reuse stack space :0
-                self.emit_instr(&format!("subq $16, %rsp"), out)?;
-            }
-            self.next_slot -= 8;
+    pub fn alloc_any(&mut self, out: &mut BufWriter<File>) -> Result<Register, Diagnostic> {
+        let victim = if self.free.is_empty() {
+            self.in_use.front().unwrap()
+        } else {
+            self.free.last().unwrap()
+        };
 
-            let victim = self.get_victim();
-            self.spilled.get_mut(&victim).unwrap().push(spill_slot);
-            self.emit_instr(&format!("movq {victim}, {spill_slot}(%rbp)"), out)?;
+        Ok(self.alloc_reg(*victim, out)?)
+    }
 
-            return Ok(victim);
+    pub fn alloc_reg(
+        &mut self,
+        reg: Register,
+        out: &mut BufWriter<File>,
+    ) -> Result<Register, Diagnostic> {
+        if let Some(pos) = self.free.iter().position(|x| *x == reg) {
+            self.free.remove(pos);
+            self.in_use.push_back(reg);
+            return Ok(reg);
         }
 
-        let reg = self.free.pop().unwrap();
-        self.in_use.push_back(reg);
-        Ok(reg)
+        let spill_slot = self.next_slot;
+        if spill_slot % 16 == -8 {
+            // Make more space for spillage, we dont reuse stack space :0
+            self.emit_instr(&format!("subq $16, %rsp"), out)?;
+        }
+        self.next_slot -= 8;
+
+        self.shuffle_victim(reg);
+        self.spilled.get_mut(&reg).unwrap().push(spill_slot);
+        self.emit_instr(&format!("movq {reg}, {spill_slot}(%rbp)"), out)?;
+
+        return Ok(reg);
     }
 
     pub fn free(&mut self, reg: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
@@ -177,11 +192,11 @@ impl RegAlloc {
 
         Ok(())
     }
-    fn get_victim(&mut self) -> Register {
-        // Shuffle to front
-        let victim = self.in_use.pop_front().unwrap();
-        self.in_use.push_back(victim);
-        victim
+
+    fn shuffle_victim(&mut self, reg: Register) {
+        let pos = self.in_use.iter().position(|x| *x == reg).unwrap();
+        self.in_use.remove(pos);
+        self.in_use.push_back(reg);
     }
 
     fn emit_instr(&self, instr: &str, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
@@ -392,7 +407,9 @@ impl<'ctx> Codegen<'ctx> {
 
     fn gen_return(&mut self, expr: &Expr) -> Result<(), Diagnostic> {
         let cr = self.gen_expr(expr)?;
-        self.emit_instr(&format!("movq {cr}, %rax"))?;
+        if cr != Register::Rax {
+            self.emit_instr(&format!("movq {cr}, %rax"))?;
+        }
         self.emit_instr("leave")?;
         self.emit_instr("ret")?;
         self.ra.free(cr, &mut self.out)?;
@@ -415,23 +432,27 @@ impl<'ctx> Codegen<'ctx> {
         match &expr.kind {
             ExprKind::Literal(val) => self.gen_expr_literal(*val),
             ExprKind::Var(id) => self.gen_expr_var(id.unwrap()),
+            ExprKind::Func(info) => self.gen_expr_func(info),
             ExprKind::UnOp(info) => self.gen_expr_unop(info),
             ExprKind::BinOp(info) => self.gen_expr_binop(info),
-            _ => todo!(),
         }
     }
 
     fn gen_expr_literal(&mut self, val: i64) -> Result<Register, Diagnostic> {
-        let r = self.ra.alloc(&mut self.out)?;
+        let r = self.ra.alloc_any(&mut self.out)?;
         self.emit_instr(&format!("movq ${val}, {r}"))?;
         Ok(r)
     }
 
     fn gen_expr_var(&mut self, id: SymbolID) -> Result<Register, Diagnostic> {
         let load_offset = self.symbols().var_info(id).offset;
-        let r = self.ra.alloc(&mut self.out)?;
+        let r = self.ra.alloc_any(&mut self.out)?;
         self.emit_instr(&format!("movq {load_offset}(%rbp), {r}"))?;
         Ok(r)
+    }
+
+    fn gen_expr_func(&mut self, _info: &FuncCallInfo) -> Result<Register, Diagnostic> {
+        todo!()
     }
 
     fn gen_expr_unop(&mut self, info: &UnOpInfo) -> Result<Register, Diagnostic> {

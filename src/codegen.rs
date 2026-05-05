@@ -98,33 +98,32 @@ const ALL_REGISTERS: &[Register] = {
 struct RegAlloc {
     free: Vec<Register>,
     in_use: VecDeque<Register>,
-    spilled: HashMap<Register, Vec<usize>>,
-    next_slot: usize,
+    spilled: HashMap<Register, Vec<i64>>,
+    next_slot: i64,
 }
 
 impl RegAlloc {
-    pub fn new(init_slot: usize) -> Self {
+    pub fn new(stack_size: usize) -> Self {
         Self {
             free: ALL_REGISTERS.to_vec(),
             in_use: VecDeque::new(),
             spilled: ALL_REGISTERS.iter().map(|&r| (r, vec![])).collect(),
-            next_slot: init_slot,
+            next_slot: -(stack_size as i64) - 8,
         }
     }
 
     pub fn alloc(&mut self, out: &mut BufWriter<File>) -> Result<Register, Diagnostic> {
         if self.free.is_empty() {
             let spill_slot = self.next_slot;
-            if spill_slot % 16 == 0 {
+            if spill_slot % 16 == -8 {
                 // Make more space for spillage, we dont reuse stack space :0
                 self.emit_instr(&format!("subq $16, %rsp"), out)?;
             }
-            self.next_slot += 8;
+            self.next_slot -= 8;
 
             let victim = self.get_victim();
             self.spilled.get_mut(&victim).unwrap().push(spill_slot);
-            let store_offset = spill_slot + 8;
-            self.emit_instr(&format!("movq {victim}, -{store_offset}(%rbp)"), out)?;
+            self.emit_instr(&format!("movq {victim}, {spill_slot}(%rbp)"), out)?;
 
             return Ok(victim);
         }
@@ -136,8 +135,7 @@ impl RegAlloc {
 
     pub fn free(&mut self, reg: Register, out: &mut BufWriter<File>) -> Result<(), Diagnostic> {
         if let Some(spill_slot) = self.spilled.get_mut(&reg).unwrap().pop() {
-            let load_offset = spill_slot + 8;
-            self.emit_instr(&format!("movq -{load_offset}(%rbp), {reg}"), out)?;
+            self.emit_instr(&format!("movq {spill_slot}(%rbp), {reg}"), out)?;
 
             return Ok(());
         }
@@ -306,9 +304,9 @@ impl<'ctx> Codegen<'ctx> {
         let var_id = info.id.unwrap();
         let expr = &info.expr;
         let cr = self.gen_expr(expr)?;
-        let store_offset = self.symbols().var_info(var_id).stack_offset + 8;
+        let store_offset = self.symbols().var_info(var_id).offset;
 
-        self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
+        self.emit_instr(&format!("movq {cr}, {store_offset}(%rbp)"))?;
 
         self.ra.free(cr, &mut self.out)?;
         Ok(())
@@ -414,9 +412,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn gen_expr_var(&mut self, id: SymbolID) -> Result<Register, Diagnostic> {
-        let load_offset = self.symbols().var_info(id).stack_offset + 8;
+        let load_offset = self.symbols().var_info(id).offset;
         let r = self.ra.alloc(&mut self.out)?;
-        self.emit_instr(&format!("movq -{load_offset}(%rbp), {r}"))?;
+        self.emit_instr(&format!("movq {load_offset}(%rbp), {r}"))?;
         Ok(r)
     }
 
@@ -443,10 +441,10 @@ impl<'ctx> Codegen<'ctx> {
                 panic!("gen assign w/o var");
             };
 
-            let store_offset = self.symbols().var_info(id.unwrap()).stack_offset + 8;
+            let store_offset = self.symbols().var_info(id.unwrap()).offset;
             let cr = self.gen_expr(rhs)?;
 
-            self.emit_instr(&format!("movq {cr}, -{store_offset}(%rbp)"))?;
+            self.emit_instr(&format!("movq {cr}, {store_offset}(%rbp)"))?;
             return Ok(cr);
         }
 

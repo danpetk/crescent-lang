@@ -31,7 +31,7 @@ pub enum TypeDefInfo {
 #[derive(Debug)]
 pub struct VarInfo {
     pub _ty: ResolvedType,
-    pub stack_offset: usize,
+    pub offset: i64,
 }
 
 #[derive(Debug)]
@@ -93,18 +93,49 @@ impl Symbols {
         let ParsedType::Named(type_token) = ty;
         let type_id = self.get_type_id(type_token)?;
 
-        let stack_offset = self.increase_stack_size(func_id, 8);
+        let offset = self.increase_stack_size(func_id, 8);
         let symbol = self.add_symbol(
             &var_token,
             SymbolInfo {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
                     _ty: ResolvedType::Named(type_id),
-                    stack_offset,
+                    offset,
                 }),
             },
         )?;
 
+        Ok(symbol)
+    }
+
+    pub fn register_param(
+        &mut self,
+        var_token: &Token,
+        ty: &ParsedType,
+        func_id: SymbolID,
+    ) -> Result<SymbolID, Diagnostic> {
+        let ParsedType::Named(type_token) = ty;
+        let type_id = self.get_type_id(type_token)?;
+
+        let current_param_num = self.func_info_mut(func_id).params.len();
+
+        let symbol = if current_param_num < 6 {
+            self.register_var(var_token, ty, func_id)?
+        } else {
+            let offset = current_param_num as i64 * 8 + 16;
+            self.add_symbol(
+                &var_token,
+                SymbolInfo {
+                    line: var_token.line,
+                    kind: SymbolKind::Var(VarInfo {
+                        _ty: ResolvedType::Named(type_id),
+                        offset,
+                    }),
+                },
+            )?
+        };
+
+        self.func_info_mut(func_id).params.push(symbol);
         Ok(symbol)
     }
 
@@ -177,14 +208,10 @@ impl Symbols {
         }
     }
 
-    pub fn add_func_params(&mut self, id: SymbolID, params: Vec<SymbolID>) {
-        self.func_info_mut(id).params = params;
-    }
-
-    pub fn increase_stack_size(&mut self, id: SymbolID, size: usize) -> usize {
-        let old = self.func_info_mut(id).stack_size;
-        self.func_info_mut(id).stack_size += size;
-        old
+    pub fn increase_stack_size(&mut self, id: SymbolID, size: usize) -> i64 {
+        let stack_size = &mut self.func_info_mut(id).stack_size;
+        *stack_size += size;
+        -(*stack_size as i64)
     }
 
     pub fn func_info(&self, id: SymbolID) -> &FuncInfo {

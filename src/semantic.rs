@@ -166,14 +166,10 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         self.current_function = *id;
 
         self.symbols_mut().push_scope();
-        let mut param_ids = vec![];
         for param in params {
-            let param_id = self
-                .symbols_mut()
-                .register_var(&param.token, &param.ty, func_id)?;
-            param_ids.push(param_id);
+            self.symbols_mut()
+                .register_param(&param.token, &param.ty, func_id)?;
         }
-        self.symbols_mut().add_func_params(func_id, param_ids);
 
         let StmtKind::Block(stmts) = &mut body.kind else {
             unreachable!("func body must be a block")

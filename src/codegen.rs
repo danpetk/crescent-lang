@@ -96,6 +96,8 @@ const ALL_REGISTERS: &[Register] = {
 
 // Let this entire structure be a lesson as to why you should use a real IR
 // instead of just walking the tree directly when making a compiler
+//
+#[derive(Debug)]
 struct RegAlloc {
     free: Vec<Register>,
     in_use: VecDeque<Register>,
@@ -475,7 +477,7 @@ impl<'ctx> Codegen<'ctx> {
             use Register::*;
             vec![Rax, Rcx, Rdx, Rsi, Rdi, R8, R9, R10, R11]
         };
-
+        println!("{:?}", self.ra);
         self.ra.save_registers(r, &caller_saved, &mut self.out)?;
 
         // left to right
@@ -507,8 +509,8 @@ impl<'ctx> Codegen<'ctx> {
         for (index, reg) in register_params.iter().enumerate().rev() {
             if *reg != self.index_to_param_reg(index) {
                 self.emit_instr(&format!("pushq {reg}"))?;
-                self.ra.free(*reg, &mut self.out)?;
             }
+            self.ra.free(*reg, &mut self.out)?;
         }
 
         for i in 0..register_params.len() {
@@ -525,6 +527,8 @@ impl<'ctx> Codegen<'ctx> {
         if total_param_offset > 0 {
             self.emit_instr(&format!("addq ${total_param_offset}, %rsp"))?;
         }
+
+        println!("{:?}", self.ra);
         self.ra.load_registers(r, &caller_saved, &mut self.out)?;
 
         self.emit_instr(&format!("# Done calling function {}", self.mangle(id)))?;

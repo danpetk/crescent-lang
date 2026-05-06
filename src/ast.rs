@@ -137,6 +137,12 @@ pub struct WhileInfo {
     pub body: Box<Stmt>,
 }
 
+#[derive(Debug)]
+pub struct ReturnInfo {
+    pub id: Option<SymbolID>,
+    pub expr: Box<Expr>,
+}
+
 // Different kinds of statements recognized in the language
 #[derive(Debug)]
 pub enum StmtKind {
@@ -146,7 +152,7 @@ pub enum StmtKind {
     While(WhileInfo),
     ExprStmt(Box<Expr>),
     Block(Vec<Stmt>),
-    Return(Box<Expr>),
+    Return(ReturnInfo),
     Break(Option<LoopID>),
     Continue(Option<LoopID>),
     Empty,
@@ -214,7 +220,10 @@ impl Stmt {
 
     pub fn return_stmt(expr: Expr, token: Token) -> Self {
         Stmt {
-            kind: StmtKind::Return(Box::new(expr)),
+            kind: StmtKind::Return(ReturnInfo {
+                id: None,
+                expr: Box::new(expr),
+            }),
             token,
         }
     }

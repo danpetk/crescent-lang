@@ -12,7 +12,7 @@ use std::{
 
 use crate::{
     ast::{
-        BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, IfInfo, UnOpInfo, UnOpKind,
+        BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, IfInfo, ReturnInfo, UnOpInfo, UnOpKind,
         VarDeclInfo, WhileInfo,
     },
     semantic::{IfID, LoopID},
@@ -287,7 +287,7 @@ impl<'ctx> Codegen<'ctx> {
             StmtKind::VarDecl(info) => self.gen_var_decl(info),
             StmtKind::If(info) => self.gen_if(info),
             StmtKind::While(info) => self.gen_while(info),
-            StmtKind::Return(expr) => self.gen_return(expr),
+            StmtKind::Return(info) => self.gen_return(info),
             StmtKind::Continue(id) => self.gen_continue(id.unwrap()),
             StmtKind::Break(id) => self.gen_break(id.unwrap()),
             StmtKind::ExprStmt(expr) => {
@@ -333,6 +333,10 @@ impl<'ctx> Codegen<'ctx> {
 
         self.emit_blank()?;
         self.gen_statement(&decl_info.body)?;
+
+        self.emit_label(&self.epilogue_label(func_id))?;
+        self.emit_instr("leave")?;
+        self.emit_instr("ret")?;
 
         Ok(())
     }
@@ -419,11 +423,12 @@ impl<'ctx> Codegen<'ctx> {
         Ok(())
     }
 
-    fn gen_return(&mut self, expr: &Expr) -> Result<(), Diagnostic> {
+    fn gen_return(&mut self, info: &ReturnInfo) -> Result<(), Diagnostic> {
+        let ReturnInfo { id, expr } = info;
         let cr = self.gen_expr(expr)?;
         self.emit_movq_reg(cr, Register::Rax)?;
-        self.emit_instr("leave")?;
-        self.emit_instr("ret")?;
+        let label = self.epilogue_label(id.unwrap());
+        self.emit_instr(&format!("jmp {label}"))?;
         self.ra.free(cr, &mut self.out)?;
         Ok(())
     }
@@ -631,6 +636,10 @@ impl<'ctx> Codegen<'ctx> {
 
     fn if_labels(&self, id: IfID) -> (String, String) {
         (format!(".L{id}_else"), format!(".L{id}_end"))
+    }
+
+    fn epilogue_label(&self, id: SymbolID) -> String {
+        format!(".L{}_epilogue", self.mangle(id))
     }
 
     fn index_to_param_reg(&self, index: usize) -> Register {

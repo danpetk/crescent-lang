@@ -1,6 +1,6 @@
 use crate::ast::{
-    BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, FuncDeclInfo, IfInfo, Program, Stmt,
-    StmtKind, UnOpInfo, VarDeclInfo, WhileInfo,
+    BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, FuncDeclInfo, IfInfo, Program, ReturnInfo,
+    Stmt, StmtKind, UnOpInfo, VarDeclInfo, WhileInfo,
 };
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
@@ -101,7 +101,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::FuncDecl(info) => self.analyze_func(info, stmt.token.clone())?,
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
-            StmtKind::Return(expr) => self.analyze_return(expr, stmt.token.clone())?,
+            StmtKind::Return(info) => self.analyze_return(info, stmt.token.clone())?,
         }
 
         Ok(())
@@ -227,7 +227,8 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         Ok(())
     }
 
-    fn analyze_return(&mut self, expr: &mut Box<Expr>, token: Token) -> Result<(), Diagnostic> {
+    fn analyze_return(&mut self, info: &mut ReturnInfo, token: Token) -> Result<(), Diagnostic> {
+        let ReturnInfo { id, expr } = info;
         self.analyze_expr(expr)?;
         if self.current_function.is_none() {
             return Err(Diagnostic {
@@ -235,6 +236,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
                 kind: DiagnosticKind::ContinueOutsideLoop,
             });
         }
+        *id = self.current_function;
         Ok(()) // TODO: Return here when we add more types
     }
 

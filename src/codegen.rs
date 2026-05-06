@@ -323,7 +323,7 @@ impl<'ctx> Codegen<'ctx> {
             self.emit_instr("# Move register paramaters onto variable stack slot")?;
         }
         for (index, id) in func_info.params.iter().enumerate().take(6) {
-            let reg = self.index_to_param_reg_str(index);
+            let reg = self.index_to_param_reg(index);
 
             let offset = self.symbols().var_info(*id).offset;
             self.emit_instr(&format!("movq {reg}, {offset}(%rbp)"))?;
@@ -461,6 +461,7 @@ impl<'ctx> Codegen<'ctx> {
         Ok(r)
     }
 
+    // Do you still think you shouldnt use a real IR?
     fn gen_expr_func(&mut self, info: &FuncCallInfo) -> Result<Register, Diagnostic> {
         let FuncCallInfo { id, args } = info;
         let id = id.unwrap();
@@ -501,10 +502,20 @@ impl<'ctx> Codegen<'ctx> {
             self.ra.free(*reg, &mut self.out)?;
         }
 
+        // TODO: Having to push and pop like this really sucks but i dont have enough
+        // trust in my allocater to break the cycles with a temporary reliably
         for (index, reg) in register_params.iter().enumerate().rev() {
-            let param_reg = self.index_to_param_reg_str(index);
-            self.emit_instr(&format!("movq {reg}, {param_reg}"))?;
-            self.ra.free(*reg, &mut self.out)?;
+            if *reg != self.index_to_param_reg(index) {
+                self.emit_instr(&format!("pushq {reg}"))?;
+                self.ra.free(*reg, &mut self.out)?;
+            }
+        }
+
+        for i in 0..register_params.len() {
+            let param_reg = self.index_to_param_reg(i);
+            if register_params[i] != param_reg {
+                self.emit_instr(&format!("popq {param_reg}"))?;
+            }
         }
 
         self.emit_instr(&format!("call {}", self.mangle(id)))?;
@@ -618,14 +629,14 @@ impl<'ctx> Codegen<'ctx> {
         (format!(".L{id}_else"), format!(".L{id}_end"))
     }
 
-    fn index_to_param_reg_str(&self, index: usize) -> &'static str {
+    fn index_to_param_reg(&self, index: usize) -> Register {
         match index {
-            0 => "%rdi",
-            1 => "%rsi",
-            2 => "%rdx",
-            3 => "%rcx",
-            4 => "%r8",
-            5 => "%r9",
+            0 => Register::Rdi,
+            1 => Register::Rsi,
+            2 => Register::Rdx,
+            3 => Register::Rcx,
+            4 => Register::R8,
+            5 => Register::R9,
             _ => unreachable!(),
         }
     }

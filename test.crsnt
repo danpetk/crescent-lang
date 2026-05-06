@@ -1,23 +1,8 @@
-func t(a: i64, b: i64, c: i64, d: i64, e: i64, f: i64, g: i64, h: i64) : i64 {
-    return 5;
-}
-
-func test() : i64 {
-    let x : i64 = 5;
-    let y : i64 = 4;
-
-    return (1+(2+(3+(4+(5+t(x, y, 1, 2, 3, 4, 5, 6))))));
-}
-
-// IsPrime
-func main() : i64 {
-
-    // Number to check 
-    let n: i64 = 999999937;
-
+func is_prime(n : i64) : i64 {
     if n < 2 {
         return 0;
     }
+
     let i: i64 = 2;
     while i * i <= n {
         if n - (n / i) * i == 0 {
@@ -27,4 +12,8 @@ func main() : i64 {
     }
    
     return 1;
+}
+
+func main() : i64 {
+    return is_prime(998244353);
 }

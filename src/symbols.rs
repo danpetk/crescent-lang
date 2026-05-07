@@ -1,3 +1,4 @@
+use crate::codegen::CALLEE_SAVED_SIZE;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
 use crate::parser::ParsedType;
 use crate::tokens::Token;
@@ -100,7 +101,7 @@ impl Symbols {
                 line: var_token.line,
                 kind: SymbolKind::Var(VarInfo {
                     _ty: ResolvedType::Named(type_id),
-                    offset,
+                    offset: offset - CALLEE_SAVED_SIZE as i64,
                 }),
             },
         )?;

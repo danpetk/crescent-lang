@@ -25,6 +25,8 @@ use crate::{
     diagnostic::{Diagnostic, DiagnosticKind},
 };
 
+pub const CALLEE_SAVED_SIZE: usize = 5 * 8;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Register {
     Rax,
@@ -308,17 +310,28 @@ impl<'ctx> Codegen<'ctx> {
 
         let symbols = self.symbols();
         let func_info = symbols.func_info(func_id);
-        let stack_size = self.align_16(func_info.stack_size);
+        let locals_size = self.align_16(func_info.stack_size + 8) - 8;
+        let stack_size = locals_size + CALLEE_SAVED_SIZE;
 
         self.ra = RegAlloc::new(stack_size); // Reset allocater for function
+
+        let callee_saved = {
+            use Register::*;
+            vec![Rbx, R12, R13, R14, R15]
+        };
 
         self.emit_blank()?;
         self.emit_label(&emitted_name)?;
         self.emit_instr("pushq %rbp")?;
         self.emit_instr("movq %rsp, %rbp")?;
-        if stack_size > 0 {
-            self.emit_instr(&format!("subq ${stack_size}, %rsp"))?;
+
+        // TODO: It hurts me to just hardcode all of the callee saved registers. Fix this later
+        self.emit_instr("# IK this is brute force, it hurts me to do this too")?;
+        for reg in &callee_saved {
+            self.emit_instr(&format!("push {reg}"))?;
         }
+
+        self.emit_instr(&format!("subq ${locals_size}, %rsp"))?;
         self.emit_blank()?;
 
         if !func_info.params.is_empty() {
@@ -335,6 +348,12 @@ impl<'ctx> Codegen<'ctx> {
         self.gen_statement(&decl_info.body)?;
 
         self.emit_label(&self.epilogue_label(func_id))?;
+        self.emit_blank()?;
+
+        self.emit_instr("leaq -40(%rbp), %rsp")?;
+        for reg in callee_saved.iter().rev() {
+            self.emit_instr(&format!("popq {reg}"))?;
+        }
         self.emit_instr("leave")?;
         self.emit_instr("ret")?;
 
@@ -482,7 +501,6 @@ impl<'ctx> Codegen<'ctx> {
             use Register::*;
             vec![Rax, Rcx, Rdx, Rsi, Rdi, R8, R9, R10, R11]
         };
-        println!("{:?}", self.ra);
         self.ra.save_registers(r, &caller_saved, &mut self.out)?;
 
         // left to right
@@ -533,7 +551,6 @@ impl<'ctx> Codegen<'ctx> {
             self.emit_instr(&format!("addq ${total_param_offset}, %rsp"))?;
         }
 
-        println!("{:?}", self.ra);
         self.ra.load_registers(r, &caller_saved, &mut self.out)?;
 
         self.emit_instr(&format!("# Done calling function {}", self.mangle(id)))?;

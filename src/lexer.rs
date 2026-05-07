@@ -92,6 +92,7 @@ impl<'ctx> Lexer<'ctx> {
                     self.make_token(kind)
                 }
                 '+' => self.make_token(TokenKind::Plus),
+                '%' => self.make_token(TokenKind::Percent),
                 '-' => {
                     if let Some(c) = self.peek_char()
                         && c.is_numeric()

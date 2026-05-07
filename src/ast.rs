@@ -10,6 +10,7 @@ pub enum BinOpKind {
     Sub,
     Mult,
     Div,
+    Mod,
     Equals,
     NotEquals,
     LessThan,

@@ -612,7 +612,7 @@ impl<'ctx> Codegen<'ctx> {
             BinOpKind::Add => self.emit_instr(&format!("addq {rhsr}, {lhsr}"))?,
             BinOpKind::Sub => self.emit_instr(&format!("subq {rhsr}, {lhsr}"))?,
             BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
-            BinOpKind::Div => {
+            BinOpKind::Div | BinOpKind::Mod => {
                 self.ra
                     .save_registers(lhsr, &vec![Register::Rax, Register::Rdx], &mut self.out)?;
 
@@ -621,7 +621,12 @@ impl<'ctx> Codegen<'ctx> {
                 self.emit_instr("cqto")?;
                 self.emit_instr(&format!("idivq {rhsr}"))?;
                 //self.emit_instr(&format!("movq %rax, {lhsr}"))?;
-                self.emit_movq_reg(Register::Rax, lhsr)?;
+
+                if matches!(op, BinOpKind::Div) {
+                    self.emit_movq_reg(Register::Rax, lhsr)?;
+                } else {
+                    self.emit_movq_reg(Register::Rdx, lhsr)?;
+                }
 
                 self.ra
                     .load_registers(lhsr, &vec![Register::Rax, Register::Rdx], &mut self.out)?;

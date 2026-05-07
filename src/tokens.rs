@@ -29,6 +29,7 @@ pub enum TokenKind {
     Slash,
     LessThan,
     GreaterThan,
+    Percent,
 
     // Multi Char
     LessEq,
@@ -86,6 +87,7 @@ impl fmt::Display for TokenKind {
             TokenKind::LessEq => "<=",
             TokenKind::GreaterThan => ">",
             TokenKind::GreaterEq => ">=",
+            TokenKind::Percent => "%",
 
             TokenKind::Identifier => "identifier",
             TokenKind::Literal => "literal",

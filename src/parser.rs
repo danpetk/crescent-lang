@@ -284,6 +284,7 @@ fn get_op_info(kind: TokenKind) -> Option<(u32, AssocKind, BinOpKind)> {
         TokenKind::Plus => (2, AssocKind::Left, BinOpKind::Add),
         TokenKind::Minus => (2, AssocKind::Left, BinOpKind::Sub),
         TokenKind::Star => (1, AssocKind::Left, BinOpKind::Mult),
+        TokenKind::Percent => (1, AssocKind::Left, BinOpKind::Mod),
         TokenKind::Slash => (1, AssocKind::Left, BinOpKind::Div),
         _ => {
             return None;

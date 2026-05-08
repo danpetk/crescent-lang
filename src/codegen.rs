@@ -349,8 +349,8 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_instr("pushq %rbp")?;
         self.emit_instr("movq %rsp, %rbp")?;
 
-        // TODO: It hurts me to just hardcode all of the callee saved registers. Fix this later
-        self.emit_instr("# IK this is brute force, it hurts me to do this too")?;
+        // TODO: It hurts me to just hardcode all of the callee saved registers, but im doing it
+        // anyway
         for reg in &CALLEE_SAVED {
             self.emit_instr(&format!("push {reg}"))?;
         }

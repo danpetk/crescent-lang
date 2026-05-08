@@ -5,7 +5,7 @@ use std::process::exit;
 fn main() {
     let filename = std::env::args().nth(1).unwrap_or_else(|| {
         eprintln!("Invalid Arguments!");
-        eprintln!("Expected Usage: lang {{filename}} {{out_file [defaults to out.crsnt]}}");
+        eprintln!("Expected Usage: lang {{filename}} {{out_file [defaults to out.s]}}");
         exit(1)
     });
 

@@ -103,7 +103,7 @@ impl fmt::Display for DiagnosticKind {
             Self::InvalidMain => {
                 write!(
                     f,
-                    "Could not find main function with signature\n\n\tfunc main(): i32\n\nin global scope"
+                    "Could not find main function with signature\n\n\tfunc main(): i64\n\nin global scope"
                 )
             }
             Self::FailedOutOpen { path } => {

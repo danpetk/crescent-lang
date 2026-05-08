@@ -1,6 +1,6 @@
 use crate::ast::{
-    BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, FuncDeclInfo, IfInfo, Program, ReturnInfo,
-    Stmt, StmtKind, UnOpInfo, VarDeclInfo, WhileInfo,
+    BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, FuncDeclInfo, IfInfo, PrintInfo, Program,
+    ReturnInfo, Stmt, StmtKind, UnOpInfo, VarDeclInfo, WhileInfo,
 };
 use crate::compiler::Context;
 use crate::diagnostic::{Diagnostic, DiagnosticKind};
@@ -97,12 +97,12 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::ExprStmt(expr) => self.analyze_expr(expr)?,
             StmtKind::Block(stmts) => self.analyze_block(stmts)?,
             StmtKind::While(info) => self.analyze_while(info)?,
+            StmtKind::Print(info) => self.analyze_print(info, stmt.token.clone())?,
             StmtKind::VarDecl(info) => self.analyze_var(info, stmt.token.clone())?,
             StmtKind::FuncDecl(info) => self.analyze_func(info, stmt.token.clone())?,
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
             StmtKind::Return(info) => self.analyze_return(info, stmt.token.clone())?,
-            _ => todo!(),
         }
 
         Ok(())
@@ -198,6 +198,27 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         self.current_loop = prev;
 
         Ok(())
+    }
+
+    fn analyze_print(&mut self, info: &mut PrintInfo, token: Token) -> Result<(), Diagnostic> {
+        let args = &mut info.args;
+        let format_num = info.format_num;
+
+        for arg in args.iter_mut() {
+            self.analyze_expr(arg)?;
+        }
+
+        if format_num != args.len() {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::MismatchedFormat {
+                    found_num: args.len(),
+                    expected_num: format_num,
+                },
+            });
+        }
+
+        return Ok(());
     }
 
     fn analyze_continue(

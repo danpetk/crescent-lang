@@ -1,6 +1,6 @@
 use crate::parser::{ParsedParam, ParsedType};
 use crate::semantic::{IfID, LoopID};
-use crate::symbols::SymbolID;
+use crate::symbols::{StringID, SymbolID};
 use crate::tokens::Token;
 
 #[derive(Debug, Clone, Copy)]
@@ -139,6 +139,14 @@ pub struct WhileInfo {
 }
 
 #[derive(Debug)]
+pub struct PrintInfo {
+    // We resolve the id at parsing so its not an Option
+    pub id: StringID,
+    pub format_num: usize,
+    pub args: Vec<Box<Expr>>,
+}
+
+#[derive(Debug)]
 pub struct ReturnInfo {
     pub id: Option<SymbolID>,
     pub expr: Box<Expr>,
@@ -151,6 +159,7 @@ pub enum StmtKind {
     FuncDecl(FuncDeclInfo),
     If(IfInfo),
     While(WhileInfo),
+    Print(PrintInfo),
     ExprStmt(Box<Expr>),
     Block(Vec<Stmt>),
     Return(ReturnInfo),

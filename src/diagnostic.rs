@@ -45,6 +45,8 @@ pub enum DiagnosticKind {
         found_num: usize,
         expected_num: usize,
     },
+    PrintReserved,
+    PrintStatment,
     WriteErr,
     InvalidAssignment,
 }
@@ -121,6 +123,8 @@ impl fmt::Display for DiagnosticKind {
                     "Fucntion expects {expected_num} arguments, found {found_num} arguments"
                 )
             }
+            Self::PrintReserved => write!(f, "'print' is a reserved function name"),
+            Self::PrintStatment => write!(f, "'print' can only be called in statement contexts"),
             Self::WriteErr => {
                 write!(f, "Error writing to file")
             }

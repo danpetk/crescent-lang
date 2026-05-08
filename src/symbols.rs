@@ -16,6 +16,17 @@ impl Deref for SymbolID {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StringID(usize);
+
+impl Deref for StringID {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 // May seem bare-bones or unnecessary now but its future proofing
 #[derive(Debug, Clone)]
 pub enum GenericType<T> {
@@ -59,6 +70,8 @@ pub struct SymbolInfo {
 pub struct Symbols {
     scopes: Vec<HashMap<String, SymbolID>>, // TODO: Change this to intered id when strings are interned
     symbols: Vec<SymbolInfo>,
+
+    _strings: Vec<String>,
 }
 
 impl Symbols {
@@ -66,6 +79,7 @@ impl Symbols {
         let mut symbols = Self {
             scopes: vec![],
             symbols: vec![],
+            _strings: vec![],
         };
 
         symbols.push_scope();
@@ -268,6 +282,12 @@ impl Symbols {
                 },
             });
         }
+        if token.lexeme == "print" {
+            return Err(Diagnostic {
+                line: token.line,
+                kind: DiagnosticKind::PrintReserved,
+            });
+        }
 
         let symbol = self.make_symbol_id();
         self.current_scope_mut()
@@ -278,6 +298,10 @@ impl Symbols {
 
     fn make_symbol_id(&self) -> SymbolID {
         SymbolID(self.symbols.len())
+    }
+
+    fn _make_string_id(&self) -> StringID {
+        StringID(self.symbols.len())
     }
 
     fn register_primative(&mut self, name: &str) {

@@ -218,6 +218,13 @@ impl<'ctx> Parser<'ctx> {
                     return Ok(Expr::var(token));
                 }
 
+                if token.lexeme == "print" {
+                    return Err(Diagnostic {
+                        line: token.line,
+                        kind: DiagnosticKind::PrintStatment,
+                    });
+                }
+
                 self.token_stream.expect(TokenKind::OpenParen)?;
                 let mut args = vec![];
 

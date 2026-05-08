@@ -102,6 +102,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
             StmtKind::Continue(id) => self.analyze_continue(id, stmt.token.clone())?,
             StmtKind::Break(id) => self.analyze_break(id, stmt.token.clone())?,
             StmtKind::Return(info) => self.analyze_return(info, stmt.token.clone())?,
+            _ => todo!(),
         }
 
         Ok(())

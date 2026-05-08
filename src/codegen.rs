@@ -297,6 +297,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.ra.free(reg, &mut self.out)?;
                 Ok(())
             }
+            _ => todo!(),
         }
     }
 

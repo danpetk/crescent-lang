@@ -180,8 +180,19 @@ impl Symbols {
 
     pub fn add_string(&mut self, string_token: &Token) -> StringID {
         let id = self.make_string_id();
-        self.strings.push(string_token.lexeme.clone());
+        let s = string_token.lexeme.clone();
+        // First and last guaranteed to be quotes so this shouldnt break byte boundries
+        let trimmed = &s[1..s.len() - 1];
+        self.strings.push(trimmed.to_string());
         id
+    }
+
+    pub fn get_strings(&self) -> Vec<(StringID, &String)> {
+        self.strings
+            .iter()
+            .enumerate()
+            .map(|(index, string)| (StringID(index), string))
+            .collect()
     }
 
     pub fn get_var_id(&self, var_token: &Token) -> Result<SymbolID, Diagnostic> {
@@ -307,7 +318,7 @@ impl Symbols {
     }
 
     fn make_string_id(&self) -> StringID {
-        StringID(self.symbols.len())
+        StringID(self.strings.len())
     }
 
     fn register_primative(&mut self, name: &str) {

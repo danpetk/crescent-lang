@@ -12,11 +12,11 @@ use std::{
 
 use crate::{
     ast::{
-        BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, IfInfo, ReturnInfo, UnOpInfo, UnOpKind,
-        VarDeclInfo, WhileInfo,
+        BinOpInfo, BinOpKind, Expr, ExprKind, FuncCallInfo, IfInfo, PrintInfo, ReturnInfo,
+        UnOpInfo, UnOpKind, VarDeclInfo, WhileInfo,
     },
     semantic::{IfID, LoopID},
-    symbols::{SymbolID, Symbols},
+    symbols::{StringID, SymbolID, Symbols},
 };
 
 use crate::{
@@ -26,6 +26,24 @@ use crate::{
 };
 
 pub const CALLEE_SAVED_SIZE: usize = 5 * 8;
+const CALLEE_SAVED: [Register; 5] = [
+    Register::Rbx,
+    Register::R12,
+    Register::R13,
+    Register::R14,
+    Register::R15,
+];
+const CALLER_SAVED: [Register; 9] = [
+    Register::Rax,
+    Register::Rcx,
+    Register::Rdx,
+    Register::Rsi,
+    Register::Rdi,
+    Register::R8,
+    Register::R9,
+    Register::R10,
+    Register::R11,
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Register {
@@ -174,15 +192,15 @@ impl RegAlloc {
 
     pub fn save_registers(
         &mut self,
-        dstr: Register,
-        saved: &Vec<Register>,
+        dstr: Option<Register>,
+        saved: &[Register],
         out: &mut BufWriter<File>,
     ) -> Result<(), Diagnostic> {
         self.spill_activity.push(0);
 
         for reg in saved {
             let reg_free = self.free.contains(&reg);
-            if dstr != *reg && !reg_free {
+            if (dstr.is_none() || dstr.unwrap() != *reg) && !reg_free {
                 self.emit_instr(&format!("pushq {reg}"), out)?;
             }
         }
@@ -192,8 +210,8 @@ impl RegAlloc {
 
     pub fn load_registers(
         &mut self,
-        dstr: Register,
-        saved: &Vec<Register>,
+        dstr: Option<Register>,
+        saved: &[Register],
         out: &mut BufWriter<File>,
     ) -> Result<(), Diagnostic> {
         // Any stack activity from spilling, we must readjust before we pop again
@@ -204,7 +222,7 @@ impl RegAlloc {
 
         for reg in saved.into_iter().rev() {
             let reg_free = self.free.contains(&reg);
-            if dstr != *reg && !reg_free {
+            if (dstr.is_none() || dstr.unwrap() != *reg) && !reg_free {
                 self.emit_instr(&format!("popq {reg}"), out)?;
             }
         }
@@ -268,12 +286,22 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
-        let epi = "\n.section .rodata\n.fmt_int:\n    .string \"%ld\\n\"\n\n# comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
-        if self.emit(epi).is_err() {
-            self.report_write_error();
-        }
+        self.generate_epilogue();
 
         if self.out.flush().is_err() {
+            self.report_write_error();
+        }
+    }
+
+    fn generate_epilogue(&mut self) {
+        let mut epi = "\n.section .rodata".to_string();
+        for (id, string) in self.symbols().get_strings() {
+            let sanitized = string.replace("%", "%%").replace("{}", "%ld") + "\\n";
+            epi += &format!("\n{}:\n    .string \"{sanitized}\"", self.fmt_label(id));
+        }
+
+        epi += "\n\n# comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
+        if self.emit(&epi).is_err() {
             self.report_write_error();
         }
     }
@@ -289,6 +317,7 @@ impl<'ctx> Codegen<'ctx> {
             StmtKind::VarDecl(info) => self.gen_var_decl(info),
             StmtKind::If(info) => self.gen_if(info),
             StmtKind::While(info) => self.gen_while(info),
+            StmtKind::Print(info) => self.gen_print(info),
             StmtKind::Return(info) => self.gen_return(info),
             StmtKind::Continue(id) => self.gen_continue(id.unwrap()),
             StmtKind::Break(id) => self.gen_break(id.unwrap()),
@@ -297,7 +326,6 @@ impl<'ctx> Codegen<'ctx> {
                 self.ra.free(reg, &mut self.out)?;
                 Ok(())
             }
-            _ => todo!(),
         }
     }
 
@@ -316,11 +344,6 @@ impl<'ctx> Codegen<'ctx> {
 
         self.ra = RegAlloc::new(stack_size); // Reset allocater for function
 
-        let callee_saved = {
-            use Register::*;
-            vec![Rbx, R12, R13, R14, R15]
-        };
-
         self.emit_blank()?;
         self.emit_label(&emitted_name)?;
         self.emit_instr("pushq %rbp")?;
@@ -328,7 +351,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // TODO: It hurts me to just hardcode all of the callee saved registers. Fix this later
         self.emit_instr("# IK this is brute force, it hurts me to do this too")?;
-        for reg in &callee_saved {
+        for reg in &CALLEE_SAVED {
             self.emit_instr(&format!("push {reg}"))?;
         }
 
@@ -352,7 +375,7 @@ impl<'ctx> Codegen<'ctx> {
         self.emit_blank()?;
 
         self.emit_instr("leaq -40(%rbp), %rsp")?;
-        for reg in callee_saved.iter().rev() {
+        for reg in CALLEE_SAVED.iter().rev() {
             self.emit_instr(&format!("popq {reg}"))?;
         }
         self.emit_instr("leave")?;
@@ -443,6 +466,74 @@ impl<'ctx> Codegen<'ctx> {
         Ok(())
     }
 
+    // Kinda close enough to function generation that i should probably factor out the
+    // similarities but theres just small changes everywhere and for a one off thing i'm not going
+    // to bother
+    fn gen_print(&mut self, info: &PrintInfo) -> Result<(), Diagnostic> {
+        let PrintInfo {
+            id,
+            args,
+            format_num,
+        } = info;
+        let _ = format_num;
+
+        self.ra.save_registers(None, &CALLER_SAVED, &mut self.out)?;
+
+        // left to right
+        let mut arg_regs = vec![];
+        for expr in args {
+            arg_regs.push(self.gen_expr(expr)?)
+        }
+
+        // 5 since format string is first
+        const MAX_REGISTER_PARAMS: usize = 5;
+        let mid = arg_regs.len().min(MAX_REGISTER_PARAMS);
+        let (register_params, stack_params) = arg_regs.split_at(mid);
+
+        let total_param_offset = if stack_params.len() % 2 == 0 {
+            stack_params.len() * 8
+        } else {
+            // odd number of params we must pad
+            self.emit_instr("subq $8, %rsp")?;
+            stack_params.len() * 8 + 8
+        };
+
+        // now we handle the allocated registers in reverse
+        for reg in stack_params.iter().rev() {
+            self.emit_instr(&format!("pushq {reg}"))?;
+            self.ra.free(*reg, &mut self.out)?;
+        }
+
+        // TODO: Having to push and pop like this really sucks but i dont have enough
+        // trust in my allocater to break the cycles with a temporary reliably
+        for (index, reg) in register_params.iter().enumerate().rev() {
+            // + 1 since we must offset for format string
+            if *reg != self.index_to_param_reg(index + 1) {
+                self.emit_instr(&format!("pushq {reg}"))?;
+            }
+            self.ra.free(*reg, &mut self.out)?;
+        }
+
+        for i in 0..register_params.len() {
+            let param_reg = self.index_to_param_reg(i + 1);
+            if register_params[i] != param_reg {
+                self.emit_instr(&format!("popq {param_reg}"))?;
+            }
+        }
+
+        self.emit_instr(&format!("lea {}(%rip), %rdi", self.fmt_label(*id)))?;
+        self.emit_instr("xor %eax, %eax")?;
+        self.emit_instr("call printf")?;
+
+        // clear all the stack params that we pushed
+        if total_param_offset > 0 {
+            self.emit_instr(&format!("addq ${total_param_offset}, %rsp"))?;
+        }
+
+        self.ra.load_registers(None, &CALLER_SAVED, &mut self.out)?;
+        Ok(())
+    }
+
     fn gen_return(&mut self, info: &ReturnInfo) -> Result<(), Diagnostic> {
         let ReturnInfo { id, expr } = info;
         let cr = self.gen_expr(expr)?;
@@ -498,11 +589,8 @@ impl<'ctx> Codegen<'ctx> {
 
         let r = self.ra.alloc_any(&mut self.out)?;
 
-        let caller_saved = {
-            use Register::*;
-            vec![Rax, Rcx, Rdx, Rsi, Rdi, R8, R9, R10, R11]
-        };
-        self.ra.save_registers(r, &caller_saved, &mut self.out)?;
+        self.ra
+            .save_registers(Some(r), &CALLER_SAVED, &mut self.out)?;
 
         // left to right
         let mut arg_regs = vec![];
@@ -552,7 +640,8 @@ impl<'ctx> Codegen<'ctx> {
             self.emit_instr(&format!("addq ${total_param_offset}, %rsp"))?;
         }
 
-        self.ra.load_registers(r, &caller_saved, &mut self.out)?;
+        self.ra
+            .load_registers(Some(r), &CALLER_SAVED, &mut self.out)?;
 
         self.emit_instr(&format!("# Done calling function {}", self.mangle(id)))?;
         self.emit_blank()?;
@@ -614,8 +703,11 @@ impl<'ctx> Codegen<'ctx> {
             BinOpKind::Sub => self.emit_instr(&format!("subq {rhsr}, {lhsr}"))?,
             BinOpKind::Mult => self.emit_instr(&format!("imulq {rhsr}, {lhsr}"))?,
             BinOpKind::Div | BinOpKind::Mod => {
-                self.ra
-                    .save_registers(lhsr, &vec![Register::Rax, Register::Rdx], &mut self.out)?;
+                self.ra.save_registers(
+                    Some(lhsr),
+                    &vec![Register::Rax, Register::Rdx],
+                    &mut self.out,
+                )?;
 
                 self.emit_movq_reg(lhsr, Register::Rax)?;
                 //self.emit_instr(&format!("movq {lhsr}, %rax"))?;
@@ -629,8 +721,11 @@ impl<'ctx> Codegen<'ctx> {
                     self.emit_movq_reg(Register::Rdx, lhsr)?;
                 }
 
-                self.ra
-                    .load_registers(lhsr, &vec![Register::Rax, Register::Rdx], &mut self.out)?;
+                self.ra.load_registers(
+                    Some(lhsr),
+                    &vec![Register::Rax, Register::Rdx],
+                    &mut self.out,
+                )?;
             }
             BinOpKind::Equals => self.emit_instr(&format!("sete {lhsr_8bit}"))?,
             BinOpKind::NotEquals => self.emit_instr(&format!("setne {lhsr_8bit}"))?,
@@ -663,6 +758,10 @@ impl<'ctx> Codegen<'ctx> {
 
     fn epilogue_label(&self, id: SymbolID) -> String {
         format!(".L{}_epilogue", self.mangle(id))
+    }
+
+    fn fmt_label(&self, id: StringID) -> String {
+        format!("fmt_{}", *id)
     }
 
     fn index_to_param_reg(&self, index: usize) -> Register {

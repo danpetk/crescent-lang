@@ -40,6 +40,7 @@ pub enum TokenKind {
     // Dynamic
     Identifier,
     Literal,
+    String,
 
     // Keywords
     Return,
@@ -91,6 +92,7 @@ impl fmt::Display for TokenKind {
 
             TokenKind::Identifier => "identifier",
             TokenKind::Literal => "literal",
+            TokenKind::String => "string",
 
             TokenKind::Return => "return",
             TokenKind::Break => "break",

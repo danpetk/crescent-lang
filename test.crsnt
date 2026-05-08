@@ -24,4 +24,3 @@ func main() : i64 {
     return is_prime(998244353);
 }
 
-

@@ -21,6 +21,9 @@ pub enum DiagnosticKind {
     TypeUnknown {
         type_name: String,
     },
+    UnterminatedStringLiteral {
+        start: i32,
+    },
     FuncUnknown {
         func_name: String,
     },
@@ -78,6 +81,9 @@ impl fmt::Display for DiagnosticKind {
             }
             Self::UnexpectedTokenInExpression { found } => {
                 write!(f, "Unexpected token '{found}' found within expression")
+            }
+            Self::UnterminatedStringLiteral { start } => {
+                write!(f, "Unterminated string literal starting at line {start}")
             }
             Self::ContinueOutsideLoop => {
                 write!(f, "'continue' statement oustide of loop")

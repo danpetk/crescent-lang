@@ -113,7 +113,7 @@ impl<'ctx> Lexer<'ctx> {
                         self.make_token(TokenKind::Slash)
                     }
                 }
-
+                '"' => self.lex_string()?,
                 x if x.is_alphabetic() || x == '_' => self.lex_identifier(),
                 x if x.is_numeric() => self.lex_literal(),
                 _ => {
@@ -188,6 +188,25 @@ impl<'ctx> Lexer<'ctx> {
         let token_kind = get_keyword(self.current_lexeme()).unwrap_or(TokenKind::Identifier);
 
         self.make_token(token_kind)
+    }
+
+    fn lex_string(&mut self) -> Option<Token> {
+        let start = self.line;
+        loop {
+            if let Some(c) = self.advance_char() {
+                if c == '"' {
+                    break;
+                }
+            } else {
+                self.ctx.diags.borrow_mut().report(Diagnostic {
+                    line: self.line,
+                    kind: DiagnosticKind::UnterminatedStringLiteral { start },
+                });
+                return None;
+            }
+        }
+
+        Some(self.make_token(TokenKind::String))
     }
 
     fn lex_literal(&mut self) -> Token {

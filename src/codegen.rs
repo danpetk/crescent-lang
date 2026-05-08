@@ -268,8 +268,8 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
-        let note = "\n# comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
-        if self.emit(note).is_err() {
+        let epi = "\n.section .rodata\n.fmt_int:\n    .string \"%ld\\n\"\n\n# comply with g++ warning\n.section .note.GNU-stack,\"\",@progbits";
+        if self.emit(epi).is_err() {
             self.report_write_error();
         }
 

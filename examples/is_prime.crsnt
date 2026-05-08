@@ -3,7 +3,7 @@ func is_prime(n : i64) : i64 {
         return 0;
     }
 
-    let i: i64 = 2;
+    let i : i64 = 2;
     while i * i <= n {
         if n % i == 0 {
             return 0;

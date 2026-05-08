@@ -2,7 +2,7 @@
 
 Crescent is a compiled programming language with a hand-written compiler that targets x86-64 assembly.
 
-<img src="/assets/demo.PNG" width="600" alt="Image demonstrating an example program"/>
+<img src="/assets/demo.png" width="600" alt="Image demonstrating an example program"/>
 
 ## Features
 

@@ -1,4 +1,4 @@
-func fizzbuzz(x: i64) : i64 {
+func fizzbuzz(x : i64) : i64 {
     print("{}: ", x);
     if x % 3 == 0 {
         print("Fizz");    

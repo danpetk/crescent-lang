@@ -17,4 +17,4 @@ while getopts "a:" opt; do
     esac
 done
 
-cargo run "$file" && "$assembler" out.s && ./a.out
+./target/release/crescent_lang "$file" && "$assembler" out.s && ./a.out

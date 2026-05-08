@@ -71,7 +71,7 @@ pub struct Symbols {
     scopes: Vec<HashMap<String, SymbolID>>, // TODO: Change this to intered id when strings are interned
     symbols: Vec<SymbolInfo>,
 
-    _strings: Vec<String>,
+    strings: Vec<String>,
 }
 
 impl Symbols {
@@ -79,7 +79,7 @@ impl Symbols {
         let mut symbols = Self {
             scopes: vec![],
             symbols: vec![],
-            _strings: vec![],
+            strings: vec![],
         };
 
         symbols.push_scope();
@@ -176,6 +176,12 @@ impl Symbols {
         )?;
 
         return Ok(symbol);
+    }
+
+    pub fn add_string(&mut self, string_token: &Token) -> StringID {
+        let id = self.make_string_id();
+        self.strings.push(string_token.lexeme.clone());
+        id
     }
 
     pub fn get_var_id(&self, var_token: &Token) -> Result<SymbolID, Diagnostic> {
@@ -300,7 +306,7 @@ impl Symbols {
         SymbolID(self.symbols.len())
     }
 
-    fn _make_string_id(&self) -> StringID {
+    fn make_string_id(&self) -> StringID {
         StringID(self.symbols.len())
     }
 

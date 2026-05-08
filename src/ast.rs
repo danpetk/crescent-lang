@@ -142,8 +142,8 @@ pub struct WhileInfo {
 pub struct PrintInfo {
     // We resolve the id at parsing so its not an Option
     pub id: StringID,
-    pub format_num: usize,
     pub args: Vec<Box<Expr>>,
+    pub format_num: usize,
 }
 
 #[derive(Debug)]
@@ -223,6 +223,17 @@ impl Stmt {
                 id: None,
                 cond: Box::new(cond),
                 body: Box::new(body),
+            }),
+            token,
+        }
+    }
+
+    pub fn print(id: StringID, args: Vec<Expr>, format_num: usize, token: Token) -> Self {
+        Stmt {
+            kind: StmtKind::Print(PrintInfo {
+                id,
+                args: args.into_iter().map(Box::new).collect(),
+                format_num,
             }),
             token,
         }

@@ -50,6 +50,7 @@ impl<'ctx> Parser<'ctx> {
             TokenKind::While => return Ok(self.parse_while()?),
 
             // Tokens with semicolons
+            TokenKind::Identifier if tok.lexeme == "print" => self.parse_print()?,
             TokenKind::Let => self.parse_let()?,
             TokenKind::Return => self.parse_return()?,
             TokenKind::Continue => self.parse_continue()?,
@@ -118,6 +119,25 @@ impl<'ctx> Parser<'ctx> {
             rhs,
             var_token,
         ))
+    }
+
+    fn parse_print(&mut self) -> Result<Stmt, Diagnostic> {
+        let token = self.token_stream.expect(TokenKind::Identifier)?;
+        self.token_stream.expect(TokenKind::OpenParen)?;
+
+        let string = self.token_stream.expect(TokenKind::String)?;
+        let id = self.ctx.symbols.borrow_mut().add_string(&string);
+        let format_num = string.lexeme.matches("{}").count();
+
+        let mut args = vec![];
+        while self.token_stream.peek().kind != TokenKind::CloseParen {
+            self.token_stream.expect(TokenKind::Comma)?;
+            let expr = self.parse_expr()?;
+            args.push(expr);
+        }
+        self.token_stream.expect(TokenKind::CloseParen)?;
+
+        Ok(Stmt::print(id, args, format_num, token))
     }
 
     fn parse_func(&mut self) -> Result<Stmt, Diagnostic> {
@@ -221,7 +241,7 @@ impl<'ctx> Parser<'ctx> {
                 if token.lexeme == "print" {
                     return Err(Diagnostic {
                         line: token.line,
-                        kind: DiagnosticKind::PrintStatment,
+                        kind: DiagnosticKind::PrintReserved,
                     });
                 }
 

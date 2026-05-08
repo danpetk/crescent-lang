@@ -296,7 +296,7 @@ impl<'ctx> Codegen<'ctx> {
     fn generate_epilogue(&mut self) {
         let mut epi = "\n.section .rodata".to_string();
         for (id, string) in self.symbols().get_strings() {
-            let sanitized = string.replace("%", "%%").replace("{}", "%ld") + "\\n";
+            let sanitized = string.replace("%", "%%").replace("{}", "%ld"); //+ "\\n";
             epi += &format!("\n{}:\n    .string \"{sanitized}\"", self.fmt_label(id));
         }
 

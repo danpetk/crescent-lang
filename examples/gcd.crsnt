@@ -1,0 +1,14 @@
+func gcd(a : i64, b : i64) : i64 {
+    while b != 0 {
+        let temp : i64 = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+func main() : i64 {
+    print("gcd(48, 18) = {}\n", gcd(48, 18));
+    print("gcd(100, 75) = {}\n", gcd(100, 75));
+    return 0;
+}

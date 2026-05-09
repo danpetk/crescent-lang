@@ -34,17 +34,17 @@ In hindsight, I learned a lot but I also made some mistakes. If I return to this
 
 The compiler still works as is right now! 
 
-# Disclaimers
+## Disclaimers
 
 - The output assembly targets x86-64 (System V ABI), so only machines that support it can run the compiled output. Some supported machines are x86 Linux and macOS (Intel) machines. Native Windows is not supported.
 - Generated assembly source files must be linked against libc to run properly.
 
-# Prerequisites
+## Prerequisites
 
 - Rust 1.90 (to build the compiler)
 - libc (to link compiled assembly files against)
 
-# Building
+## Building
 
 Follow the instructions to clone and build the compiler executable.
 
@@ -59,7 +59,7 @@ cargo run
 ``` 
 will build and run the executable in one go. Any command-line arguments after will be forwarded to the executable.
 
-# Basic usage
+## Basic usage
 
 To compile a source file, do 
 ```bash
@@ -82,3 +82,73 @@ and run the final binary using
 ```
 
 I've provided a helper script `compile_and_run.sh` that compiles a source file, assembles it, and runs it in one go as well.
+
+## Language Specs
+
+The following is an overview of the language's features and syntax.
+
+### Statements vs Expressions
+
+Things in the language are categorized into statements and expressions. Statements do things, while expressions produce values. This should be very similar to languages like C++. An example of a statement is a `while` loop, while an example expression is `x + 3`. 
+
+### Function Declarations
+
+All function declarations must be in the global scope. They are also the only things allowed in the global scope. An example function declaration is
+```
+func example(x : i64, y: i64) : i64 { ... }
+```
+Functions are declared with the `func` keyword, followed by an identifier and a paranthesized parameter list. Each element of the list is a parameter name followed by a colon and a type annotation. The only type in the language currently is a 64-bit signed integer, `i64` (see Development & Challenges above). After the list, a colon and a return type annotation is required. Finally, a statement block is required for the function body.
+
+### Statement Blocks 
+
+Statement blocks are enclosed in `{ }` and contain any number of statements separated by semicolons (not all statements require semicolons, like `if` statements and `while` loops). Each block creates a new scope.
+
+### Variable bindings
+
+Variable bindings are used to assign an identifier to a value that can be accessed and modified. An example variable binding is 
+```
+let x : i64 = 5;
+```
+Variables are declared with the `let` keyword, followed by an indentifier, colon, and a type annotation. After the equal sign, an expression is required to set the initial value of the varable. Shadowing is allowed for nested scopes, but not for two identifiers in the same scope. Both functions and variables share the same namespace.
+
+### `if` statement
+
+Identical to C-style `if` statements, except the condition does not need to be in parenthesis. The condition is truthy if it is not zero.
+```
+if cond { 
+    ... 
+} else if cond { 
+    ... 
+} else { 
+    ... 
+} 
+```
+
+### `while` statement
+
+Identical to C-style `while` statements, except the condition does not need to be in parenthesis. Again the condition is truthy if it is not zero.
+```
+while cond {
+    ...
+} 
+```
+
+### `continue` & `break` statements
+
+`continue` jumps to the loop condition check of the innermost loop. `break` jumps out of the innermost loop.
+
+### `return` statement
+
+`return` followed by an expression breaks out of the current function and yields the value to the caller (i.e. `return 5+6;`). Every possible branch of a function needs a `return` statement, otherwise it is undefinded behavior.
+
+### `print` statement
+
+Despite looking like a function call, a call to built-in `print` is a statement since it does not produce a value. An example usage of print is 
+```
+print("Hello, {}!\n", 3); // prints "Hello, 3!"
+```
+The first argument to `print` must be a string literal (this is the only place a string literal is valid). Inside the string literal, format placeholders `{}` can be used to specify where additional arguments will be inserted in the output. After the string literal, additional arguments can be provided to fill in those format placeholders. The number of placeholders and extra arguments must match exactly.
+
+### Expressions
+
+Expressions are pretty much identical to most C-style languages. At their simplest, they are integer literals (i.e. `135`) and variable references (i.e. `x`). You can combine values using arithmetic operators (`+`, `-`, `*`, `/`, `%`) and compare them with `==`, `!=`, `<`, `<=`, `>`, and `>=`. The unary operators `!` and `-` handle logical negation and numeric negation respectively. Functions can be called as expressions (i.e. `x + func(3,4)`), allowing their return values to be used in other expressions. The binary operator `=` is also an expression that updates an existing value (i.e. `x = 7`) and returns the value of the right expression.

@@ -243,7 +243,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         } else {
             return Err(Diagnostic {
                 line: token.line,
-                kind: DiagnosticKind::ContinueOutsideLoop,
+                kind: DiagnosticKind::BreakOutsideLoop,
             });
         }
         Ok(())
@@ -255,7 +255,7 @@ impl<'ctx> SemanticAnalyzer<'ctx> {
         if self.current_function.is_none() {
             return Err(Diagnostic {
                 line: token.line,
-                kind: DiagnosticKind::ContinueOutsideLoop,
+                kind: DiagnosticKind::ReturnOutsideFunc,
             });
         }
         *id = self.current_function;
